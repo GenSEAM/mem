@@ -32,3 +32,4 @@
 | (Baseline) | Tier 0 | Direct | Green | 0.010ms cold start, 3.25M ops/sec RingBuffer, 696k frames/sec WAL |
 | `mem-contract-integrity` | Tier 1 | Direct | Green | Node deletion edge cascade, vector dimension validation (commit 13f4150) |
 | `mem-wal-replay` | Tier 1 | Direct | Green | WAL stream batch deserializer, crash recovery hydrator, unit test verified |
+| `mem-flat-slab-simd` | Tier 1 | Direct | Green | Contiguous Float32Array slab, SIMD unrolling, 1.42ms query P50, 1.96ms 25k insert |

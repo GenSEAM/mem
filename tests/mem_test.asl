@@ -68,13 +68,27 @@
         (is-rejected (mt res-bad ((some _) false) ((none) true)))]
     (and is-ok is-rejected)))
 
+(df test-vector-slab-operations [] -> Bool
+  :d "Verifies contiguous vector slab allocation, slot offset, and insertion."
+  (let [(slab0 (s/make-vector-slab 3 10))
+        (off0 (s/slab-slot-offset 0 3))
+        (off2 (s/slab-slot-offset 2 3))
+        (res-ok (s/slab-insert slab0 "vec-0" (list 0.1 0.2 0.3)))
+        (res-bad (s/slab-insert slab0 "bad" (list 0.1 0.2)))
+        (is-ok (mt res-ok ((some s) (and (= (.-count s) 1) (= (list-length (.-data s)) 3))) ((none) false)))
+        (is-bad (mt res-bad ((some _) false) ((none) true)))]
+    (and (= off0 0)
+         (and (= off2 6)
+              (and is-ok is-bad)))))
+
 (df run-tests [] -> Bool
   :d "Runs all asl-mem unit tests."
   (fold (fn [(acc Bool) (p Bool)] -> Bool (and acc p))
         true
         (list (test-vector-similarity)
-              (test-knowledge-graph)
-              (test-contradiction-resolution)
-              (test-compact-encoding)
-              (test-graph-node-removal)
-              (test-vector-dimension-check))))
+               (test-knowledge-graph)
+               (test-contradiction-resolution)
+               (test-compact-encoding)
+               (test-graph-node-removal)
+               (test-vector-dimension-check)
+               (test-vector-slab-operations))))

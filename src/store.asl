@@ -1,6 +1,6 @@
 (module asl-mem/store
-  :d "In-memory vector store: L2 norm, dimension validation, and cosine similarity over embeddings."
-  :x [VectorItem VectorStore sqrt-approx dot vector-norm cosine-similarity normalize-vector dot-normalized validate-vector-dim safe-insert-item])
+  :d "In-memory vector store: L2 norm, dimension validation, cosine similarity, and contiguous flat memory slab."
+  :x [VectorItem VectorStore VectorSlab make-vector-slab slab-slot-offset slab-insert sqrt-approx dot vector-norm cosine-similarity normalize-vector dot-normalized validate-vector-dim safe-insert-item])
 
 (dfs VectorItem
   (:f id Str "Stable identifier for the stored item")
@@ -63,4 +63,36 @@
             :name (.-name store)
             :dimensions (.-dimensions store)
             :items (list-append (.-items store) (list item))))
+    (none)))
+
+(dfs VectorSlab
+  (:f dimensions I64 "Vector dimension")
+  (:f capacity I64 "Maximum slot capacity")
+  (:f count I64 "Number of stored vectors")
+  (:f ids (List Str) "Identifier labels")
+  (:f data (List F64) "Flat contiguous embedding slab"))
+
+(df make-vector-slab [(dim I64) (cap I64)] -> VectorSlab
+  :d "Allocates an empty contiguous vector slab."
+  (VectorSlab
+    :dimensions dim
+    :capacity cap
+    :count 0
+    :ids (list)
+    :data (list)))
+
+(df slab-slot-offset [(slot I64) (dim I64)] -> I64
+  :d "Calculates the linear start offset for a vector slot index."
+  (* slot dim))
+
+(df slab-insert [(slab VectorSlab) (id Str) (vec (List F64))] -> (Option VectorSlab)
+  :d "Appends a vector to the contiguous flat slab if within capacity and matching dimension."
+  (if (and (= (list-length vec) (.-dimensions slab))
+           (< (.-count slab) (.-capacity slab)))
+    (some (VectorSlab
+            :dimensions (.-dimensions slab)
+            :capacity (.-capacity slab)
+            :count (+ (.-count slab) 1)
+            :ids (list-append (.-ids slab) (list id))
+            :data (list-append (.-data slab) vec)))
     (none)))

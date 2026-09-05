@@ -158,6 +158,84 @@ function knnSearch(store, queryVec, topK = 5) {
   return result;
 }
 
+function createFlatSlabStore(name, dimensions, capacity = 50000) {
+  return {
+    name,
+    dimensions,
+    capacity,
+    count: 0,
+    ids: [],
+    texts: [],
+    slab: new Float32Array(capacity * dimensions)
+  };
+}
+
+function insertFlatSlab(store, id, text, vector) {
+  const idx = store.count;
+  store.ids.push(id);
+  store.texts.push(text);
+  const offset = idx * store.dimensions;
+  for (let i = 0; i < store.dimensions; i++) {
+    store.slab[offset + i] = vector[i];
+  }
+  store.count++;
+}
+
+function knnSearchFlatSlab(store, queryVec, topK = 5) {
+  const topScores = new Float32Array(topK).fill(-Infinity);
+  const topIndices = new Int32Array(topK).fill(-1);
+  let minTopScore = -Infinity;
+  let minTopIdx = 0;
+
+  const n = store.count;
+  const dim = store.dimensions;
+  const slab = store.slab;
+
+  for (let i = 0; i < n; i++) {
+    const offset = i * dim;
+    let dot = 0.0;
+    // 8-way unrolled SIMD-friendly dot product over contiguous float buffer
+    for (let d = 0; d < dim; d += 8) {
+      dot += slab[offset + d]     * queryVec[d]     +
+             slab[offset + d + 1] * queryVec[d + 1] +
+             slab[offset + d + 2] * queryVec[d + 2] +
+             slab[offset + d + 3] * queryVec[d + 3] +
+             slab[offset + d + 4] * queryVec[d + 4] +
+             slab[offset + d + 5] * queryVec[d + 5] +
+             slab[offset + d + 6] * queryVec[d + 6] +
+             slab[offset + d + 7] * queryVec[d + 7];
+    }
+
+    if (dot > minTopScore) {
+      topScores[minTopIdx] = dot;
+      topIndices[minTopIdx] = i;
+
+      minTopScore = topScores[0];
+      minTopIdx = 0;
+      for (let k = 1; k < topK; k++) {
+        if (topScores[k] < minTopScore) {
+          minTopScore = topScores[k];
+          minTopIdx = k;
+        }
+      }
+    }
+  }
+
+  const result = [];
+  for (let k = 0; k < topK; k++) {
+    const idx = topIndices[k];
+    if (idx >= 0) {
+      result.push({
+        id: store.ids[idx],
+        text: store.texts[idx],
+        score: topScores[k]
+      });
+    }
+  }
+  result.sort((a, b) => b.score - a.score);
+  return result;
+}
+
 function runBenchmark() {
   const startMem = process.memoryUsage().heapUsed;
   const startRss = process.memoryUsage().rss;
@@ -208,6 +286,27 @@ function runBenchmark() {
     const p95 = queryTimes[Math.floor(queryTimes.length * 0.95)];
     const mean = queryTimes.reduce((acc, v) => acc + v, 0) / queryTimes.length;
 
+    // Flat Slab SIMD Benchmark
+    const slabStore = createFlatSlabStore(`slab-${count}`, 384, count + 10);
+    const queryVecF32 = new Float32Array(384);
+    for (let d = 0; d < 384; d++) queryVecF32[d] = queryVec[d];
+
+    for (let i = 0; i < count; i++) {
+      const item = pregenerated[i];
+      insertFlatSlab(slabStore, item.id, item.text, item.vector);
+    }
+    for (let w = 0; w < 10; w++) {
+      knnSearchFlatSlab(slabStore, queryVecF32, 5);
+    }
+    const slabTimes = [];
+    for (let q = 0; q < 50; q++) {
+      const tS0 = performance.now();
+      knnSearchFlatSlab(slabStore, queryVecF32, 5);
+      slabTimes.push(performance.now() - tS0);
+    }
+    slabTimes.sort((a, b) => a - b);
+    const slabP50 = slabTimes[Math.floor(slabTimes.length * 0.5)];
+
     scaleResults.push({
       vectorCount: count,
       dimension: 384,
@@ -215,7 +314,8 @@ function runBenchmark() {
       insertDurationMs: parseFloat(insertDurationMs.toFixed(2)),
       queryMeanMs: parseFloat(mean.toFixed(4)),
       queryP50Ms: parseFloat(p50.toFixed(4)),
-      queryP95Ms: parseFloat(p95.toFixed(4))
+      queryP95Ms: parseFloat(p95.toFixed(4)),
+      slabP50Ms: parseFloat(slabP50.toFixed(4))
     });
   }
 
@@ -259,6 +359,7 @@ function runBenchmark() {
   console.log(`[2] QUERY LATENCY & THROUGHPUT (${primaryResult.vectorCount.toLocaleString()} Vectors @ 384 Dim)`);
   console.log(`  Mean Search Latency         : ${primaryResult.queryMeanMs} ms`);
   console.log(`  Median Search (P50)         : ${primaryResult.queryP50Ms} ms`);
+  console.log(`  Flat-Slab SIMD (P50)        : ${primaryResult.slabP50Ms} ms`);
   console.log(`  95th Percentile (P95)       : ${primaryResult.queryP95Ms} ms`);
   console.log(`  Threshold                   : < ${THRESHOLDS.maxQueryLatencyMs} ms`);
   console.log(`  Verdict                     : ${primaryResult.queryP50Ms < THRESHOLDS.maxQueryLatencyMs ? 'PASS [✓]' : 'FAIL [✗]'}\n`);
@@ -270,12 +371,12 @@ function runBenchmark() {
 
   if (IS_SCALE) {
     console.log("[4] MULTI-TIER SCALE STRESS TEST (384 Dimensions)");
-    console.log("Vector Count   Throughput (vec/s)   Insert Time (ms)   Query P50 (ms)   Query P95 (ms)");
-    console.log("----------------------------------------------------------------------------------------");
+    console.log("Vector Count   Throughput (vec/s)   Insert Time (ms)   Standard P50 (ms)   Flat-Slab SIMD P50 (ms)");
+    console.log("--------------------------------------------------------------------------------------------------");
     for (const r of scaleResults) {
-      console.log(`${r.vectorCount.toString().padEnd(15)}${r.insertThroughputVecPerSec.toString().padEnd(21)}${r.insertDurationMs.toFixed(2).padEnd(19)}${r.queryP50Ms.toFixed(3).padEnd(17)}${r.queryP95Ms.toFixed(3)}`);
+      console.log(`${r.vectorCount.toString().padEnd(15)}${r.insertThroughputVecPerSec.toString().padEnd(21)}${r.insertDurationMs.toFixed(2).padEnd(19)}${r.queryP50Ms.toFixed(3).padEnd(20)}${r.slabP50Ms.toFixed(3)}`);
     }
-    console.log("----------------------------------------------------------------------------------------\n");
+    console.log("--------------------------------------------------------------------------------------------------\n");
   }
 
   console.log("========================================================================================");
