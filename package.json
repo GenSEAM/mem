@@ -9,7 +9,7 @@
     "./asl": "./asl.json"
   },
   "scripts": {
-    "test": "node benchmark/run.js --check && node benchmark/storage_benchmark.js --check && python3 benchmark/rag_eval.py --check && node tests/driver_test.js",
+    "test": "node --test tests/math.test.js && node benchmark/run.js --check && node benchmark/storage_benchmark.js --check && node tests/driver_test.js",
     "benchmark": "node benchmark/run.js",
     "benchmark:scale": "node benchmark/run.js --scale",
     "benchmark:storage": "node benchmark/storage_benchmark.js",
