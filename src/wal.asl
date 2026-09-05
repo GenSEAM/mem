@@ -7,6 +7,7 @@
       append-wal-entry
       format-wal-frame
       parse-wal-frame
+      parse-wal-stream
       wal-drain-unflushed
       wal-checkpoint-marker
       op-type-to-string
@@ -97,6 +98,17 @@
               ((none) (none))))
           (none)))
       (none))))
+
+(df parse-wal-stream [(raw-log Str)] -> (List WalEntry)
+  :d "Parses a multi-line WAL log string, extracting all valid sequential WalEntry frames."
+  (let [(lines (filter (fn [(l Str)] -> Bool (not (string-empty? (string-trim l))))
+                       (string-split raw-log "\n")))]
+    (fold (fn [(acc (List WalEntry)) (line Str)] -> (List WalEntry)
+            (mt (parse-wal-frame line)
+              ((some entry) (list-append acc (list entry)))
+              ((none) acc)))
+          (list)
+          lines)))
 
 (df append-wal-entry [(st WalState) (op WalOpType) (key Str) (payload Str) (epoch I64)] -> (Pair WalState WalEntry)
   :d "Appends a new entry to the WAL with an incremented sequence number."

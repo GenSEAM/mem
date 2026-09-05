@@ -30,4 +30,5 @@
 | Phase | Tier | Dispatched To | Gate Result | Notes |
 |---|---|---|---|---|
 | (Baseline) | Tier 0 | Direct | Green | 0.010ms cold start, 3.25M ops/sec RingBuffer, 696k frames/sec WAL |
-| `mem-contract-integrity` | Tier 1 | `steps-implementer` | Pending | Target: edge cascade on node delete, dimension validation |
+| `mem-contract-integrity` | Tier 1 | Direct | Green | Node deletion edge cascade, vector dimension validation (commit 13f4150) |
+| `mem-wal-replay` | Tier 1 | Direct | Green | WAL stream batch deserializer, crash recovery hydrator, unit test verified |

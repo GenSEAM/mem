@@ -8,7 +8,10 @@
       engine-put-vector
       engine-put-node
       engine-put-edge
+      engine-del-node
       engine-checkpoint
+      engine-apply-wal-entry
+      engine-recover
       engine-stats]
   :i [(store :a s)
       (graph :a g)
@@ -156,3 +159,127 @@
       :edge-count (list-length (.-edges (.-graph eng)))
       :wal-entries-committed (.-total-committed (.-wal eng))
       :evicted-count (r/ring-evicted-count (.-ring eng)))))
+
+(df engine-del-node [(eng MemoryEngine) (node-id Str) (epoch I64)] -> MemoryEngine
+  :d "Deletes an entity from knowledge graph with incident edge cascading, logging to WAL."
+  (let [(next-graph (g/remove-node (.-graph eng) node-id))
+        (wal-res (mt (.-mode (.-config eng))
+                   ((mode-journaled-wal)
+                    (let [(pair-res (w/append-wal-entry (.-wal eng) (w/op-del-node) node-id "DELETED" epoch))]
+                      (.-first pair-res)))
+                   ((mode-ephemeral) (.-wal eng))
+                   ((mode-snapshot) (.-wal eng))))]
+    (MemoryEngine
+      :config (.-config eng)
+      :ring (.-ring eng)
+      :vectors (.-vectors eng)
+      :graph next-graph
+      :wal wal-res
+      :last-checkpoint-epoch (.-last-checkpoint-epoch eng))))
+
+(df parse-node-frame [(frame Str)] -> (Option g/GraphNode)
+  :d "Parses serialized @n:{id|label|epoch|confidence|content} into a GraphNode."
+  (let [(trimmed (string-trim frame))]
+    (if (and (string-starts-with? trimmed "@n:{")
+             (string-ends-with? trimmed "}"))
+      (let [(inner-len (- (string-length trimmed) 5))
+            (inner (option-or (string-slice trimmed 4 (+ 4 inner-len)) ""))
+            (parts (string-split inner "|"))]
+        (if (>= (list-length parts) 5)
+          (let [(id (option-or (list-head parts) ""))
+                (p1 (option-or (list-tail parts) (list)))
+                (label (option-or (list-head p1) ""))
+                (p2 (option-or (list-tail p1) (list)))
+                (epoch-s (option-or (list-head p2) "0"))
+                (p3 (option-or (list-tail p2) (list)))
+                (conf-s (option-or (list-head p3) "1.0"))
+                (p4 (option-or (list-tail p3) (list)))
+                (content (string-join p4 "|"))]
+            (some (g/GraphNode
+                    :id id
+                    :label label
+                    :content content
+                    :timestamp-epoch (option-or (string-to-int64 epoch-s) 0)
+                    :confidence (option-or (string-to-float64 conf-s) 1.0))))
+          (none)))
+      (none))))
+
+(df parse-edge-frame [(frame Str)] -> (Option g/GraphEdge)
+  :d "Parses serialized @e:{source|target|relation|weight|epoch} into a GraphEdge."
+  (let [(trimmed (string-trim frame))]
+    (if (and (string-starts-with? trimmed "@e:{")
+             (string-ends-with? trimmed "}"))
+      (let [(inner-len (- (string-length trimmed) 5))
+            (inner (option-or (string-slice trimmed 4 (+ 4 inner-len)) ""))
+            (parts (string-split inner "|"))]
+        (if (>= (list-length parts) 5)
+          (let [(src (option-or (list-head parts) ""))
+                (p1 (option-or (list-tail parts) (list)))
+                (tgt (option-or (list-head p1) ""))
+                (p2 (option-or (list-tail p1) (list)))
+                (rel (option-or (list-head p2) ""))
+                (p3 (option-or (list-tail p2) (list)))
+                (wt-s (option-or (list-head p3) "1.0"))
+                (p4 (option-or (list-tail p3) (list)))
+                (epoch-s (option-or (list-head p4) "0"))]
+            (some (g/GraphEdge
+                    :source-id src
+                    :target-id tgt
+                    :relation rel
+                    :weight (option-or (string-to-float64 wt-s) 1.0)
+                    :timestamp-epoch (option-or (string-to-int64 epoch-s) 0))))
+          (none)))
+      (none))))
+
+(df engine-apply-wal-entry [(eng MemoryEngine) (entry w/WalEntry)] -> MemoryEngine
+  :d "Applies a single replayed WAL entry to reconstruct memory state."
+  (let [(next-wal (w/WalState
+                    :log-path (.-log-path (.-wal eng))
+                    :current-seq (.-seq-num entry)
+                    :unflushed (list)
+                    :total-committed (.-seq-num entry)))]
+    (mt (.-op-type entry)
+      ((w/op-del-node)
+       (MemoryEngine
+         :config (.-config eng)
+         :ring (.-ring eng)
+         :vectors (.-vectors eng)
+         :graph (g/remove-node (.-graph eng) (.-key entry))
+         :wal next-wal
+         :last-checkpoint-epoch (.-last-checkpoint-epoch eng)))
+      ((w/op-checkpoint)
+       (MemoryEngine
+         :config (.-config eng)
+         :ring (.-ring eng)
+         :vectors (.-vectors eng)
+         :graph (.-graph eng)
+         :wal next-wal
+         :last-checkpoint-epoch (.-timestamp-epoch entry)))
+      ((w/op-put-node)
+       (mt (parse-node-frame (.-payload entry))
+         ((some n)
+          (MemoryEngine
+            :config (.-config eng)
+            :ring (.-ring eng)
+            :vectors (.-vectors eng)
+            :graph (g/add-node (.-graph eng) n)
+            :wal next-wal
+            :last-checkpoint-epoch (.-last-checkpoint-epoch eng)))
+         ((none) eng)))
+      ((w/op-put-edge)
+       (mt (parse-edge-frame (.-payload entry))
+         ((some e)
+          (MemoryEngine
+            :config (.-config eng)
+            :ring (.-ring eng)
+            :vectors (.-vectors eng)
+            :graph (g/add-edge (.-graph eng) e)
+            :wal next-wal
+            :last-checkpoint-epoch (.-last-checkpoint-epoch eng)))
+         ((none) eng)))
+      ((w/op-put-vector) eng))))
+
+(df engine-recover [(eng MemoryEngine) (raw-wal-log Str)] -> MemoryEngine
+  :d "Rehydrates MemoryEngine state by replaying a complete stream of WAL entries."
+  (let [(entries (w/parse-wal-stream raw-wal-log))]
+    (fold engine-apply-wal-entry eng entries)))

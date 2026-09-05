@@ -79,6 +79,21 @@
                    (and (string-contains? snap-text "@snap:{v1|")
                         (string-contains? snap-text "@v:{v-1")))))))
 
+(df test-wal-crash-recovery [] -> Bool
+  :d "Verifies that an engine recovers graph nodes, edges, deletions, and sequence number from replaying a WAL stream."
+  (let [(wal-log (string-join (list
+                   "@wal:{1|1000|PUT-NODE|n-1|@n:{n-1|entity|1000|1.0|Alpha}}"
+                   "@wal:{2|1001|PUT-NODE|n-2|@n:{n-2|entity|1001|1.0|Beta}}"
+                   "@wal:{3|1002|PUT-EDGE|n-1|@e:{n-1|n-2|connects|1.0|1002}}"
+                   "@wal:{4|1003|DEL-NODE|n-1|DELETED}")
+                 "\n"))
+        (base-eng (eng/make-engine (eng/mode-journaled-wal) 10 "/tmp/eng.wal" "/tmp/snap.asn"))
+        (recovered (eng/engine-recover base-eng wal-log))
+        (stats (eng/engine-stats recovered))]
+    (and (= (.-node-count stats) 1)
+         (and (= (.-edge-count stats) 0)
+              (= (.-wal-entries-committed stats) 4)))))
+
 (df run-tests [] -> Bool
   :d "Executes all storage engine and ring buffer test suites."
   (fold (fn [(acc Bool) (p Bool)] -> Bool (and acc p))
@@ -87,4 +102,5 @@
               (test-ring-buffer-reject)
               (test-wal-serialization)
               (test-graph-batch-and-index)
-              (test-engine-lifecycle))))
+              (test-engine-lifecycle)
+              (test-wal-crash-recovery))))
