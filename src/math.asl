@@ -1,7 +1,8 @@
-(:d "High-Performance Pure AgentScript FastMath & Vector Primitives"
- :x [sqrt fast-inv-sqrt
-     vector-dot vector-norm vector-cosine-sim
-     vector-add vector-scale vector-relu vector-softmax])
+(module asl-mem/math
+  :d "High-Performance Pure AgentScript FastMath & Vector Primitives"
+  :x [sqrt fast-inv-sqrt
+      vector-dot vector-norm vector-cosine-sim
+      vector-add vector-scale vector-relu vector-softmax])
 
 (df sqrt [(x F64)] -> F64
   (:d "Newton-Raphson approximation for square root with fixed 10-step convergence")
