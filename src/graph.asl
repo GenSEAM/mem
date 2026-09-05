@@ -2,7 +2,7 @@
   :d "High-density entity knowledge graph, edge traversal, and contradiction resolution in ASL Nano."
   :x [GraphNode GraphEdge KnowledgeGraph ContradictionResult KnowledgeGraphIndex
       find-node find-outgoing-edges find-neighbors is-fresh? resolve-contradiction
-      add-node add-edge add-nodes-batch add-edges-batch
+      add-node add-edge add-nodes-batch add-edges-batch remove-node
       build-graph-index find-node-fast find-neighbors-fast])
 
 (dfs GraphNode
@@ -121,4 +121,15 @@
 (df find-neighbors-fast [(idx KnowledgeGraphIndex) (node-id Str)] -> (List Str)
   :d "O(1) lookup of outgoing neighbor node IDs."
   (option-or (map-get (.-adjacency idx) node-id) (list)))
+
+(df remove-node [(graph KnowledgeGraph) (node-id Str)] -> KnowledgeGraph
+  :d "Removes an entity vertex and purges all connected incident edges to prevent orphaned relations."
+  (let [(remaining-nodes (filter (fn [(n GraphNode)] -> Bool (not (= (.-id n) node-id))) (.-nodes graph)))
+        (remaining-edges (filter (fn [(e GraphEdge)] -> Bool
+                                   (and (not (= (.-source-id e) node-id))
+                                        (not (= (.-target-id e) node-id))))
+                                 (.-edges graph)))]
+    (KnowledgeGraph
+      :nodes remaining-nodes
+      :edges remaining-edges)))
 

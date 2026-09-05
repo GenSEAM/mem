@@ -46,6 +46,28 @@
     (and (string-contains? (.-payload rec) "@v:{vec-1|query test|[0.5,0.25,0.125]}")
          (string-contains? ledger "@v:{vec-1"))))
 
+(df test-graph-node-removal [] -> Bool
+  :d "Verifies node deletion purges node and all incident relationship edges."
+  (let [(n1 (g/GraphNode :id "a" :label "node" :content "A" :timestamp-epoch 1000 :confidence 1.0))
+        (n2 (g/GraphNode :id "b" :label "node" :content "B" :timestamp-epoch 1000 :confidence 1.0))
+        (e1 (g/GraphEdge :source-id "a" :target-id "b" :relation "links" :weight 1.0 :timestamp-epoch 1000))
+        (g0 (g/KnowledgeGraph :nodes (list n1 n2) :edges (list e1)))
+        (g-after (g/remove-node g0 "a"))]
+    (and (= (list-length (.-nodes g-after)) 1)
+         (and (= (list-length (.-edges g-after)) 0)
+              (= (.-id (option-or (list-head (.-nodes g-after)) n1)) "b")))))
+
+(df test-vector-dimension-check [] -> Bool
+  :d "Verifies strict dimension matching on vector store ingestion."
+  (let [(store (s/VectorStore :name "dim-test" :dimensions 3 :items (list)))
+        (valid-item (s/VectorItem :id "v1" :text "good" :vector (list 1.0 2.0 3.0)))
+        (invalid-item (s/VectorItem :id "v2" :text "bad" :vector (list 1.0 2.0)))
+        (res-ok (s/safe-insert-item store valid-item))
+        (res-bad (s/safe-insert-item store invalid-item))
+        (is-ok (mt res-ok ((some _) true) ((none) false)))
+        (is-rejected (mt res-bad ((some _) false) ((none) true)))]
+    (and is-ok is-rejected)))
+
 (df run-tests [] -> Bool
   :d "Runs all asl-mem unit tests."
   (fold (fn [(acc Bool) (p Bool)] -> Bool (and acc p))
@@ -53,5 +75,6 @@
         (list (test-vector-similarity)
               (test-knowledge-graph)
               (test-contradiction-resolution)
-              (test-compact-encoding))))
-
+              (test-compact-encoding)
+              (test-graph-node-removal)
+              (test-vector-dimension-check))))

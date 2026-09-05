@@ -1,6 +1,6 @@
 (module asl-mem/store
-  :d "In-memory vector store: L2 norm and cosine similarity over embeddings."
-  :x [VectorItem VectorStore sqrt-approx dot vector-norm cosine-similarity normalize-vector dot-normalized])
+  :d "In-memory vector store: L2 norm, dimension validation, and cosine similarity over embeddings."
+  :x [VectorItem VectorStore sqrt-approx dot vector-norm cosine-similarity normalize-vector dot-normalized validate-vector-dim safe-insert-item])
 
 (dfs VectorItem
   (:f id Str "Stable identifier for the stored item")
@@ -51,3 +51,16 @@
 (df dot-normalized [(a (List F64)) (b (List F64))] -> F64
   :d "Direct cosine similarity between pre-normalized unit vectors without norm overhead."
   (dot a b))
+
+(df validate-vector-dim [(store VectorStore) (v (List F64))] -> Bool
+  :d "Asserts that embedding vector length matches the configured store dimension."
+  (= (list-length v) (.-dimensions store)))
+
+(df safe-insert-item [(store VectorStore) (item VectorItem)] -> (Option VectorStore)
+  :d "Validates vector dimension before inserting into store, rejecting mismatches."
+  (if (validate-vector-dim store (.-vector item))
+    (some (VectorStore
+            :name (.-name store)
+            :dimensions (.-dimensions store)
+            :items (list-append (.-items store) (list item))))
+    (none)))
