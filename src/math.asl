@@ -29,7 +29,7 @@
 (df vector-dot [(a (List F64)) (b (List F64))] -> F64
   (:d "Dot product of two Float64 vectors")
   (let [(pairs (list-zip a b))]
-    (fold (lambda [(acc F64) (p (Pair F64 F64))]
+    (fold (fn [(acc F64) (p (Pair F64 F64))]
             (+ acc (* (fst p) (snd p))))
           0.0
           pairs)))
@@ -48,23 +48,23 @@
 
 (df vector-add [(a (List F64)) (b (List F64))] -> (List F64)
   (:d "Element-wise vector addition")
-  (list-map (lambda [(p (Pair F64 F64))] (+ (fst p) (snd p))) (list-zip a b)))
+  (list-map (fn [(p (Pair F64 F64))] (+ (fst p) (snd p))) (list-zip a b)))
 
 (df vector-scale [(v (List F64)) (s F64)] -> (List F64)
   (:d "Scale vector by scalar factor")
-  (list-map (lambda [(x F64)] (* x s)) v))
+  (list-map (fn [(x F64)] (* x s)) v))
 
 (df vector-relu [(v (List F64))] -> (List F64)
   (:d "Element-wise Rectified Linear Unit activation")
-  (list-map (lambda [(x F64)] (if (> x 0.0) x 0.0)) v))
+  (list-map (fn [(x F64)] (if (> x 0.0) x 0.0)) v))
 
 (df vector-softmax [(v (List F64))] -> (List F64)
   (:d "Softmax normalization (exp(x_i) / sum(exp(x_j)))")
-  (let [(exps (list-map (lambda [(x F64)]
+  (let [(exps (list-map (fn [(x F64)]
                           (let [(exp-approx (+ 1.0 (+ x (/ (* x x) 2.0))))]
                             (if (> exp-approx 0.0) exp-approx 0.0001)))
                         v))
-        (total (fold (lambda [(acc F64) (x F64)] (+ acc x)) 0.0 exps))]
+        (total (fold (fn [(acc F64) (x F64)] (+ acc x)) 0.0 exps))]
     (if (<= total 0.0)
         v
-        (list-map (lambda [(x F64)] (/ x total)) exps))))
+        (list-map (fn [(x F64)] (/ x total)) exps))))
