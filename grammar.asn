@@ -1,0 +1,178 @@
+;; Package Grammar & Exported Symbol Registry (ASN)
+;; @genseam/asl-mem
+(:grammar
+  :package @genseam/asl-mem
+  :version "0.1.0"
+  :tokens-baseline 2
+  :symbols [
+    ;; Core Types (<= 2 tokens)
+    (:sym :name "SnapshotManifest" :kind :type :tokens 1)
+    (:sym :name "CompactRecord" :kind :type :tokens 1)
+    (:sym :name "VectorRecord" :kind :type :tokens 1)
+    (:sym :name "create-record" :kind :fn :tokens 2)
+    (:sym :name "cosine-similarity" :kind :fn :tokens 2)
+    (:sym :name "StorageMode" :kind :type :tokens 1)
+    (:sym :name "StorageConfig" :kind :type :tokens 1)
+    (:sym :name "MemoryEngine" :kind :type :tokens 1)
+    (:sym :name "EngineStats" :kind :type :tokens 1)
+    (:sym :name "make-engine" :kind :fn :tokens 2)
+    (:sym :name "engine-checkpoint" :kind :fn :tokens 2)
+    (:sym :name "engine-recover" :kind :fn :tokens 2)
+    (:sym :name "engine-stats" :kind :fn :tokens 2)
+    (:sym :name "ShortcodeType" :kind :type :tokens 1)
+    (:sym :name "Shortcode" :kind :type :tokens 1)
+    (:sym :name "AdrRule" :kind :type :tokens 1)
+    (:sym :name "RecordsLedger" :kind :type :tokens 1)
+    (:sym :name "ScanResult" :kind :type :tokens 1)
+    (:sym :name "make-shortcode" :kind :fn :tokens 2)
+    (:sym :name "make-rule" :kind :fn :tokens 2)
+    (:sym :name "make-ledger" :kind :fn :tokens 2)
+    (:sym :name "normalize-shortcode" :kind :fn :tokens 2)
+    (:sym :name "scan-shortcodes" :kind :fn :tokens 2)
+    (:sym :name "find-rule" :kind :fn :tokens 2)
+    (:sym :name "query-rule" :kind :fn :tokens 2)
+    (:sym :name "check-invariants" :kind :fn :tokens 2)
+    (:sym :name "verify-module" :kind :fn :tokens 2)
+    (:sym :name "VectorItem" :kind :type :tokens 1)
+    (:sym :name "VectorStore" :kind :type :tokens 1)
+    (:sym :name "VectorSlab" :kind :type :tokens 1)
+    (:sym :name "slab-insert" :kind :fn :tokens 2)
+    (:sym :name "sqrt-approx" :kind :fn :tokens 2)
+    (:sym :name "dot" :kind :fn :tokens 1)
+    (:sym :name "vector-norm" :kind :fn :tokens 2)
+    (:sym :name "normalize-vector" :kind :fn :tokens 2)
+    (:sym :name "dot-normalized" :kind :fn :tokens 2)
+    (:sym :name "WalOpType" :kind :type :tokens 1)
+    (:sym :name "WalEntry" :kind :type :tokens 1)
+    (:sym :name "WalState" :kind :type :tokens 1)
+    (:sym :name "MemoryTier" :kind :type :tokens 1)
+    (:sym :name "MemorySegment" :kind :type :tokens 1)
+    (:sym :name "PagedMemoryManager" :kind :type :tokens 1)
+    (:sym :name "make-segment" :kind :fn :tokens 2)
+    (:sym :name "should-page?" :kind :fn :tokens 2)
+    (:sym :name "touch-segment" :kind :fn :tokens 2)
+    (:sym :name "evict-oldest" :kind :fn :tokens 2)
+    (:sym :name "load-segment" :kind :fn :tokens 2)
+    (:sym :name "GraphNode" :kind :type :tokens 1)
+    (:sym :name "GraphEdge" :kind :type :tokens 1)
+    (:sym :name "KnowledgeGraph" :kind :type :tokens 1)
+    (:sym :name "ContradictionResult" :kind :type :tokens 1)
+    (:sym :name "KnowledgeGraphIndex" :kind :type :tokens 1)
+    (:sym :name "find-node" :kind :fn :tokens 2)
+    (:sym :name "find-neighbors" :kind :fn :tokens 2)
+    (:sym :name "is-fresh?" :kind :fn :tokens 2)
+    (:sym :name "resolve-contradiction" :kind :fn :tokens 2)
+    (:sym :name "add-node" :kind :fn :tokens 2)
+    (:sym :name "add-edge" :kind :fn :tokens 2)
+    (:sym :name "remove-node" :kind :fn :tokens 2)
+    (:sym :name "OverflowPolicy" :kind :type :tokens 1)
+    (:sym :name "RingBuffer" :kind :type :tokens 1)
+    (:sym :name "RingPushResult" :kind :type :tokens 1)
+    (:sym :name "ring-push" :kind :fn :tokens 2)
+    (:sym :name "ring-utilization" :kind :fn :tokens 2)
+    (:sym :name "sqrt" :kind :fn :tokens 1)
+    (:sym :name "vector-dot" :kind :fn :tokens 2)
+    (:sym :name "vector-add" :kind :fn :tokens 2)
+    (:sym :name "vector-scale" :kind :fn :tokens 2)
+    (:sym :name "vector-relu" :kind :fn :tokens 2)
+    (:sym :name "vector-softmax" :kind :fn :tokens 2)
+    (:sym :name "main" :kind :fn :tokens 1)
+    (:sym :name "run-tests" :kind :fn :tokens 2)
+
+    ;; Extended Operations (> 2 tokens with required :rationale)
+    (:sym :name "create-snapshot-frame" :kind :fn :tokens 3
+          :rationale "Encapsulates memory state into an immutable snapshot ledger frame")
+    (:sym :name "serialize-vector-item" :kind :fn :tokens 3
+          :rationale "Encodes vector embedding and metadata into portable binary frame")
+    (:sym :name "serialize-graph-node-frame" :kind :fn :tokens 4
+          :rationale "Encodes knowledge graph vertex entity into snapshot representation")
+    (:sym :name "serialize-graph-edge" :kind :fn :tokens 3
+          :rationale "Encodes relational graph dependency edge into snapshot frame")
+    (:sym :name "format-snapshot-ledger" :kind :fn :tokens 3
+          :rationale "Renders snapshot frame manifest into human-readable ASN ledger")
+    (:sym :name "encode-vector-frame" :kind :fn :tokens 3
+          :rationale "Packs high-dimensional vector embeddings into compact bitstream")
+    (:sym :name "serialize-graph-node" :kind :fn :tokens 3
+          :rationale "Encodes individual graph node entity into compact ASN record")
+    (:sym :name "format-compact-ledger" :kind :fn :tokens 3
+          :rationale "Compacts multiple historical memory mutations into single active state")
+    (:sym :name "engine-put-vector" :kind :fn :tokens 3
+          :rationale "Inserts or updates semantic vector embedding in memory engine")
+    (:sym :name "engine-put-node" :kind :fn :tokens 3
+          :rationale "Inserts or updates knowledge graph node in memory engine")
+    (:sym :name "engine-put-edge" :kind :fn :tokens 3
+          :rationale "Inserts or updates directed relationship edge in memory engine")
+    (:sym :name "engine-del-node" :kind :fn :tokens 3
+          :rationale "Removes node and its associated incident edges from memory engine")
+    (:sym :name "engine-apply-wal-entry" :kind :fn :tokens 4
+          :rationale "Applies sequential Write-Ahead Log transaction entry to engine state")
+    (:sym :name "make-scan-result" :kind :fn :tokens 3
+          :rationale "Constructor assembling scanned module shortcode compliance report")
+    (:sym :name "shortcode-type-to-string" :kind :fn :tokens 4
+          :rationale "Converts ShortcodeType variant into single-character prefix string")
+    (:sym :name "string-to-shortcode-type" :kind :fn :tokens 4
+          :rationale "Parses single-character prefix string into ShortcodeType enum")
+    (:sym :name "is-valid-shortcode?" :kind :fn :tokens 3
+          :rationale "Validates format of 6-character architectural shortcode string")
+    (:sym :name "is-invariant-rule?" :kind :fn :tokens 3
+          :rationale "Predicate asserting whether shortcode represents an immutable law")
+    (:sym :name "make-vector-slab" :kind :fn :tokens 3
+          :rationale "Allocates contiguous vector storage slab in virtual memory")
+    (:sym :name "slab-slot-offset" :kind :fn :tokens 3
+          :rationale "Computes byte offset for indexed vector slot inside storage slab")
+    (:sym :name "validate-vector-dim" :kind :fn :tokens 3
+          :rationale "Validates dimension congruence between input vector and vector store")
+    (:sym :name "safe-insert-item" :kind :fn :tokens 3
+          :rationale "Inserts item with bounds checking to prevent buffer overrun")
+    (:sym :name "make-wal-state" :kind :fn :tokens 3
+          :rationale "Initializes in-memory state tracking Write-Ahead Log sequence")
+    (:sym :name "append-wal-entry" :kind :fn :tokens 3
+          :rationale "Appends transactional log record to uncommitted WAL buffer")
+    (:sym :name "format-wal-frame" :kind :fn :tokens 3
+          :rationale "Formats log transaction into byte-delimited frame for disk persistence")
+    (:sym :name "parse-wal-frame" :kind :fn :tokens 3
+          :rationale "Parses byte stream frame into typed in-memory WalEntry record")
+    (:sym :name "parse-wal-stream" :kind :fn :tokens 3
+          :rationale "Recovers and parses continuous stream of WAL frames from checkpoint")
+    (:sym :name "wal-drain-unflushed" :kind :fn :tokens 3
+          :rationale "Flushes pending in-memory write buffer to non-volatile disk storage")
+    (:sym :name "wal-checkpoint-marker" :kind :fn :tokens 3
+          :rationale "Inserts checkpoint boundary marker truncating preceding log frames")
+    (:sym :name "op-type-to-string" :kind :fn :tokens 4
+          :rationale "Converts WalOpType enum variant into canonical string identifier")
+    (:sym :name "string-to-op-type" :kind :fn :tokens 4
+          :rationale "Parses string representation back into strongly typed WalOpType")
+    (:sym :name "make-paged-manager" :kind :fn :tokens 3
+          :rationale "Constructor initializing multi-tier virtual paged memory manager")
+    (:sym :name "is-segment-active?" :kind :fn :tokens 3
+          :rationale "Checks if memory segment is resident in hot working cache")
+    (:sym :name "find-outgoing-edges" :kind :fn :tokens 3
+          :rationale "Retrieves list of outbound relationship edges from graph node")
+    (:sym :name "add-nodes-batch" :kind :fn :tokens 3
+          :rationale "Batch insertion optimization for multiple knowledge graph vertices")
+    (:sym :name "add-edges-batch" :kind :fn :tokens 3
+          :rationale "Batch insertion optimization for multiple knowledge graph relationships")
+    (:sym :name "build-graph-index" :kind :fn :tokens 3
+          :rationale "Constructs fast hash index over knowledge graph nodes and edges")
+    (:sym :name "find-node-fast" :kind :fn :tokens 3
+          :rationale "O(1) indexed lookup of knowledge graph node by identifier string")
+    (:sym :name "find-neighbors-fast" :kind :fn :tokens 3
+          :rationale "O(1) indexed retrieval of incident neighbors in knowledge graph")
+    (:sym :name "make-ring-buffer" :kind :fn :tokens 3
+          :rationale "Allocates fixed-capacity circular ring buffer with overflow policy")
+    (:sym :name "ring-peek-recent" :kind :fn :tokens 3
+          :rationale "Retrieves most recently appended items without popping buffer")
+    (:sym :name "ring-peek-oldest" :kind :fn :tokens 3
+          :rationale "Retrieves oldest items at tail of ring buffer without eviction")
+    (:sym :name "ring-drain-all" :kind :fn :tokens 3
+          :rationale "Drains all buffered items and resets circular head and tail pointers")
+    (:sym :name "ring-is-full?" :kind :fn :tokens 3
+          :rationale "Predicate asserting whether ring buffer has reached max capacity")
+    (:sym :name "ring-evicted-count" :kind :fn :tokens 3
+          :rationale "Telemetry counter tracking dropped entries under overwrite overflow")
+    (:sym :name "fast-inv-sqrt" :kind :fn :tokens 3
+          :rationale "Fast inverse square root approximation for vector normalization")
+    (:sym :name "vector-cosine-sim" :kind :fn :tokens 3
+          :rationale "Computes cosine similarity between two normalized float vectors")
+  ]
+)
