@@ -1,5 +1,3 @@
-# ASL-Mem Iteration Index
-
-| ID | Created | Status | Goal | Current Phase |
-|---|---|---|---|---|
-| `iter-01-storage-substrate` | 2026-09-05 | `active` | Universal Storage Engine, RingBuffer, WAL, Snapshotting & SIMD Acceleration | `mem-contract-integrity` |
+# @genseam/asl-mem Roadmap Index
+All completed iteration phases (Phases 1–5) have been archived to `archive/plans/mem/`.
+Active status: COMPLETE (commit `cb0dda0`).
