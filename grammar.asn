@@ -174,5 +174,25 @@
           :rationale "Fast inverse square root approximation for vector normalization")
     (:sym :name "vector-cosine-sim" :kind :fn :tokens 3
           :rationale "Computes cosine similarity between two normalized float vectors")
+
+    ;; Phase 08 Perceptual Pointers Symbols
+    (:sym :name "BlobPointer" :kind :type :tokens 1)
+    (:sym :name "PerceptualFact" :kind :type :tokens 1)
+    (:sym :name "make-blob-pointer" :kind :fn :tokens 3
+          :rationale "Constructs content-addressed blob pointer calculating byte and token savings")
+    (:sym :name "format-pointer-token" :kind :fn :tokens 3
+          :rationale "Renders lightweight S-expression pointer token for prompt injection")
+    (:sym :name "extract-scalar-fact" :kind :fn :tokens 3
+          :rationale "Extracts scalar verified fact from blob pointer without prompt pollution")
+    (:sym :name "format-perceptual-fact" :kind :fn :tokens 3
+          :rationale "Formats scalar fact record into canonical observation string")
+    (:sym :name "test-make-blob-pointer" :kind :fn :tokens 4
+          :rationale "Unit test for blob pointer construction")
+    (:sym :name "test-format-pointer-token" :kind :fn :tokens 4
+          :rationale "Unit test for pointer token formatting")
+    (:sym :name "test-extract-scalar-fact" :kind :fn :tokens 4
+          :rationale "Unit test for scalar fact extraction")
+    (:sym :name "test-pointer-token-savings" :kind :fn :tokens 4
+          :rationale "Unit test asserting token savings calculation")
   ]
 )
