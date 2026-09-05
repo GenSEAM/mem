@@ -13,5 +13,5 @@
 | `mem-contract-integrity` | `done` | `steps-implementer` | Wave 0 (Verified Green) |
 | `mem-wal-replay` | `done` | `steps-implementer` | Wave 1 Track A (Verified Green) |
 | `mem-flat-slab-simd` | `done` | `steps-implementer` | Wave 1 Track B (Verified Green) |
-| `mem-host-fs-driver` | `ready` | - | Wave 2 (Unblocked) |
-| `mem-ecosystem-integration` | `pending` | - | Waiting on Wave 2 |
+| `mem-host-fs-driver` | `done` | `steps-implementer` | Wave 2 (Verified Green) |
+| `mem-ecosystem-integration` | `ready` | - | Wave 3 (Unblocked) |
