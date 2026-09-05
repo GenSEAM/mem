@@ -1,6 +1,6 @@
 (module asl-mem/store
   :d "In-memory vector store: L2 norm and cosine similarity over embeddings."
-  :x [VectorItem VectorStore sqrt-approx dot vector-norm cosine-similarity])
+  :x [VectorItem VectorStore sqrt-approx dot vector-norm cosine-similarity normalize-vector dot-normalized])
 
 (dfs VectorItem
   (:f id Str "Stable identifier for the stored item")
@@ -40,3 +40,14 @@
     (if (= denom 0.0)
       0.0
       (/ (dot a b) denom))))
+
+(df normalize-vector [(v (List F64))] -> (List F64)
+  :d "Returns unit-length normalized vector for fast dot product cosine similarity."
+  (let [(norm (vector-norm v))]
+    (if (= norm 0.0)
+      v
+      (map (fn [(x F64)] -> F64 (/ x norm)) v))))
+
+(df dot-normalized [(a (List F64)) (b (List F64))] -> F64
+  :d "Direct cosine similarity between pre-normalized unit vectors without norm overhead."
+  (dot a b))

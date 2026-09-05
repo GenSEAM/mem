@@ -214,7 +214,7 @@ function runBenchmark() {
   const selfSim = cosineSimilarityNormalized(testVec, testVec);
 
   const peakRssMb = parseFloat(((process.memoryUsage().rss - startRss) / (1024 * 1024)).toFixed(2));
-  const primaryResult = scaleResults[scaleResults.length - 1];
+  const primaryResult = scaleResults.find(r => r.vectorCount === 5000) || scaleResults[scaleResults.length - 1];
 
   const summary = {
     hardware: `${os.cpus()[0]?.model || 'Apple Silicon'} (${os.cpus().length} cores), ${(os.totalmem() / (1024**3)).toFixed(2)} GB RAM`,
@@ -246,7 +246,7 @@ function runBenchmark() {
   console.log(`  Threshold                   : < ${THRESHOLDS.coldStartLatencyMs} ms`);
   console.log(`  Verdict                     : ${summary.coldStartMs < THRESHOLDS.coldStartLatencyMs ? 'PASS [✓]' : 'FAIL [✗]'}\n`);
 
-  console.log("[2] QUERY LATENCY & THROUGHPUT (5,000 Vectors @ 384 Dim)");
+  console.log(`[2] QUERY LATENCY & THROUGHPUT (${primaryResult.vectorCount.toLocaleString()} Vectors @ 384 Dim)`);
   console.log(`  Mean Search Latency         : ${primaryResult.queryMeanMs} ms`);
   console.log(`  Median Search (P50)         : ${primaryResult.queryP50Ms} ms`);
   console.log(`  95th Percentile (P95)       : ${primaryResult.queryP95Ms} ms`);
@@ -257,6 +257,16 @@ function runBenchmark() {
   console.log(`  Self-Cosine Parity          : ${summary.mathematicalPrecision}`);
   console.log(`  Expected                    : 1.000000`);
   console.log(`  Verdict                     : PASS [✓]\n`);
+
+  if (IS_SCALE) {
+    console.log("[4] MULTI-TIER SCALE STRESS TEST (384 Dimensions)");
+    console.log("Vector Count   Throughput (vec/s)   Insert Time (ms)   Query P50 (ms)   Query P95 (ms)");
+    console.log("----------------------------------------------------------------------------------------");
+    for (const r of scaleResults) {
+      console.log(`${r.vectorCount.toString().padEnd(15)}${r.insertThroughputVecPerSec.toString().padEnd(21)}${r.insertDurationMs.toFixed(2).padEnd(19)}${r.queryP50Ms.toFixed(3).padEnd(17)}${r.queryP95Ms.toFixed(3)}`);
+    }
+    console.log("----------------------------------------------------------------------------------------\n");
+  }
 
   console.log("========================================================================================");
   console.log("                    COMPARATIVE VECTOR SUBSTRATE BENCHMARK SCOREBOARD                   ");
