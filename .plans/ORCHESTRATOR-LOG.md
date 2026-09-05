@@ -34,3 +34,4 @@
 | `mem-wal-replay` | Tier 1 | Direct | Green | WAL stream batch deserializer, crash recovery hydrator, unit test verified |
 | `mem-flat-slab-simd` | Tier 1 | Direct | Green | Contiguous Float32Array slab, SIMD unrolling, 1.42ms query P50, 1.96ms 25k insert |
 | `mem-host-fs-driver` | Tier 1 | Direct | Green | Node HostFsDriver (streaming append, atomic tmp rename, fsync durability) |
+| `mem-ecosystem-integration` | Tier 1 | Direct | Green | Exported ESM driver, wired to agent-core and eddie, all suites green |

@@ -3,12 +3,19 @@
   "version": "0.3.0",
   "description": "Zero-server in-memory vector database, semantic knowledge graph, RingBuffer streaming, and WAL/Snapshot storage substrate in ASL",
   "type": "module",
-  "main": "dist/mem.js",
+  "main": "bridges/ts/index.js",
+  "exports": {
+    ".": "./bridges/ts/index.js",
+    "./asl": "./asl.json"
+  },
   "scripts": {
-    "test": "node benchmark/run.js --check && node benchmark/storage_benchmark.js --check && python3 benchmark/rag_eval.py --check",
+    "test": "node benchmark/run.js --check && node benchmark/storage_benchmark.js --check && python3 benchmark/rag_eval.py --check && node tests/driver_test.js",
     "benchmark": "node benchmark/run.js",
     "benchmark:scale": "node benchmark/run.js --scale",
     "benchmark:storage": "node benchmark/storage_benchmark.js",
     "benchmark:rag": "python3 benchmark/rag_eval.py"
-  }
+  },
+  "keywords": ["agentscript", "vector-database", "knowledge-graph", "ring-buffer", "wal", "storage"],
+  "author": "GenSEAM Team",
+  "license": "MIT"
 }
