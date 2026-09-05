@@ -194,5 +194,30 @@
           :rationale "Unit test for scalar fact extraction")
     (:sym :name "test-pointer-token-savings" :kind :fn :tokens 4
           :rationale "Unit test asserting token savings calculation")
+
+    ;; Phase 23 PCP-to-ASL-MEM Migration Symbols
+    (:sym :name "PcpMigrationResult" :kind :type :tokens 1)
+    (:sym :name "migrate-pcp-constitution" :kind :fn :tokens 3
+          :rationale "Migrates legacy YAML constitution into native ASL memory ledger")
+    (:sym :name "serialize-ledger-asn" :kind :fn :tokens 3
+          :rationale "Serializes memory ledger into dense ASN S-expression")
+    (:sym :name "query-memory-shortcode" :kind :fn :tokens 3
+          :rationale "Fast indexed in-memory lookup for an architectural rule or law")
+    (:sym :name "benchmark-mem-latency" :kind :fn :tokens 3
+          :rationale "Measures retrieval latency in microseconds across multiple iterations")
+    (:sym :name "make-empty-migration-result" :kind :fn :tokens 4
+          :rationale "Constructs an empty fallback migration result record")
+    (:sym :name "test-migrate-pcp-yaml" :kind :fn :tokens 4
+          :rationale "Unit test for migration of multi-rule legacy YAML constitution")
+    (:sym :name "test-query-memory-shortcode" :kind :fn :tokens 4
+          :rationale "Unit test for fast indexed lookup by shortcode")
+    (:sym :name "test-serialize-ledger-asn" :kind :fn :tokens 4
+          :rationale "Unit test for serialization of memory ledger to native S-expression")
+    (:sym :name "test-migration-token-savings" :kind :fn :tokens 4
+          :rationale "Unit test for token compaction measurement")
+    (:sym :name "test-empty-migration" :kind :fn :tokens 3
+          :rationale "Unit test for graceful fallback on empty YAML input")
+    (:sym :name "run-migration-tests" :kind :fn :tokens 3
+          :rationale "Executes complete PCP to ASL-MEM migration unit test suite")
   ]
 )
