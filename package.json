@@ -1,11 +1,14 @@
 {
   "name": "@genseam/asl-mem",
   "version": "0.3.0",
-  "description": "Zero-server in-memory vector database, semantic knowledge graph, and ADR/Invariant Records ledger in ASL",
+  "description": "Zero-server in-memory vector database, semantic knowledge graph, RingBuffer streaming, and WAL/Snapshot storage substrate in ASL",
   "type": "module",
   "main": "dist/mem.js",
   "scripts": {
-    "test": "node benchmark/run.js --check",
-    "benchmark": "node benchmark/run.js"
+    "test": "node benchmark/run.js --check && node benchmark/storage_benchmark.js --check && python3 benchmark/rag_eval.py --check",
+    "benchmark": "node benchmark/run.js",
+    "benchmark:scale": "node benchmark/run.js --scale",
+    "benchmark:storage": "node benchmark/storage_benchmark.js",
+    "benchmark:rag": "python3 benchmark/rag_eval.py"
   }
 }

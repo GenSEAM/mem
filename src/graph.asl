@@ -1,6 +1,9 @@
 (module asl-mem/graph
   :d "High-density entity knowledge graph, edge traversal, and contradiction resolution in ASL Nano."
-  :x [GraphNode GraphEdge KnowledgeGraph ContradictionResult find-node find-outgoing-edges find-neighbors is-fresh? resolve-contradiction add-node add-edge])
+  :x [GraphNode GraphEdge KnowledgeGraph ContradictionResult KnowledgeGraphIndex
+      find-node find-outgoing-edges find-neighbors is-fresh? resolve-contradiction
+      add-node add-edge add-nodes-batch add-edges-batch
+      build-graph-index find-node-fast find-neighbors-fast])
 
 (dfs GraphNode
   (:f id Str "Unique entity node identifier")
@@ -79,3 +82,43 @@
   (KnowledgeGraph
     :nodes (.-nodes graph)
     :edges (list-append (.-edges graph) (list edge))))
+
+(df add-nodes-batch [(graph KnowledgeGraph) (new-nodes (List GraphNode))] -> KnowledgeGraph
+  :d "Batched insertion of entity vertices in a single linear pass."
+  (KnowledgeGraph
+    :nodes (list-append (.-nodes graph) new-nodes)
+    :edges (.-edges graph)))
+
+(df add-edges-batch [(graph KnowledgeGraph) (new-edges (List GraphEdge))] -> KnowledgeGraph
+  :d "Batched insertion of directed edges in a single linear pass."
+  (KnowledgeGraph
+    :nodes (.-nodes graph)
+    :edges (list-append (.-edges graph) new-edges)))
+
+(dfs KnowledgeGraphIndex
+  (:f node-map (Map Str GraphNode) "O(1) hash map of entity ID to GraphNode")
+  (:f adjacency (Map Str (List Str)) "O(1) adjacency list mapping source ID to target IDs"))
+
+(df build-graph-index [(graph KnowledgeGraph)] -> KnowledgeGraphIndex
+  :d "Constructs fast O(1) hash index and adjacency tables from a KnowledgeGraph."
+  (let [(n-map (fold (fn [(acc (Map Str GraphNode)) (n GraphNode)] -> (Map Str GraphNode)
+                       (map-set acc (.-id n) n))
+                     (map-empty)
+                     (.-nodes graph)))
+        (adj (fold (fn [(acc (Map Str (List Str))) (e GraphEdge)] -> (Map Str (List Str))
+                     (let [(src (.-source-id e))
+                           (tgt (.-target-id e))
+                           (existing (option-or (map-get acc src) (list)))]
+                       (map-set acc src (list-append existing (list tgt)))))
+                   (map-empty)
+                   (.-edges graph)))]
+    (KnowledgeGraphIndex :node-map n-map :adjacency adj)))
+
+(df find-node-fast [(idx KnowledgeGraphIndex) (node-id Str)] -> (Option GraphNode)
+  :d "O(1) lookup of a node by identifier."
+  (map-get (.-node-map idx) node-id))
+
+(df find-neighbors-fast [(idx KnowledgeGraphIndex) (node-id Str)] -> (List Str)
+  :d "O(1) lookup of outgoing neighbor node IDs."
+  (option-or (map-get (.-adjacency idx) node-id) (list)))
+

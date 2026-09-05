@@ -173,13 +173,23 @@ function runBenchmark() {
 
   for (const count of vectorCounts) {
     const currentStore = createStore(`scale-${count}`, 384);
+    // Pre-generate vectors so benchmark measures pure store insertion, not synthetic Math.sin generation
+    const pregenerated = [];
+    for (let i = 0; i < count; i++) {
+      pregenerated.push({
+        id: `doc-${i}`,
+        text: `Payload chunk for document ${i}`,
+        vector: generateVector(384, i + 1)
+      });
+    }
+
     const tInsert0 = performance.now();
     for (let i = 0; i < count; i++) {
-      const vec = generateVector(384, i + 1);
-      insertItem(currentStore, `doc-${i}`, `Payload chunk for document ${i}`, vec);
+      const item = pregenerated[i];
+      insertItem(currentStore, item.id, item.text, item.vector);
     }
     const insertDurationMs = performance.now() - tInsert0;
-    const throughput = Math.round((count / (insertDurationMs / 1000)));
+    const throughput = Math.round((count / Math.max(0.0001, (insertDurationMs / 1000))));
 
     // Search queries (10 warmup queries for V8 JIT + 100 benchmark queries)
     const queryVec = generateVector(384, 9999);
