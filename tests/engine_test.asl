@@ -94,6 +94,17 @@
          (and (= (.-edge-count stats) 0)
               (= (.-wal-entries-committed stats) 4)))))
 
+(df test-wal-rollback [] -> Bool
+  :d "Verifies that rolling back unflushed WAL entries restores previous committed sequence."
+  (let [(wal0 (w/make-wal-state "/tmp/test-rollback.wal"))
+        (pair1 (w/append-wal-entry wal0 (w/op-put-node) "n-1" "node-data" 1000))
+        (pair2 (w/append-wal-entry (.-first pair1) (w/op-put-node) "n-2" "node-data-2" 1001))
+        (st-dirty (.-first pair2))
+        (st-rolled (w/wal-rollback-unflushed st-dirty))]
+    (and (= (list-length (.-unflushed st-dirty)) 2)
+         (and (= (list-length (.-unflushed st-rolled)) 0)
+              (= (.-current-seq st-rolled) 0)))))
+
 (df run-tests [] -> Bool
   :d "Executes all storage engine and ring buffer test suites."
   (fold (fn [(acc Bool) (p Bool)] -> Bool (and acc p))
@@ -103,4 +114,5 @@
               (test-wal-serialization)
               (test-graph-batch-and-index)
               (test-engine-lifecycle)
-              (test-wal-crash-recovery))))
+              (test-wal-crash-recovery)
+              (test-wal-rollback))))

@@ -9,6 +9,7 @@
       parse-wal-frame
       parse-wal-stream
       wal-drain-unflushed
+      wal-rollback-unflushed
       wal-checkpoint-marker
       op-type-to-string
       string-to-op-type])
@@ -136,6 +137,14 @@
                    :unflushed (list)
                    :total-committed (.-total-committed st)))]
     (pair next-st drained)))
+
+(df wal-rollback-unflushed [(st WalState)] -> WalState
+  :d "Discards all uncommitted in-memory WAL entries, rolling back to committed state."
+  (WalState
+    :log-path (.-log-path st)
+    :current-seq (- (.-current-seq st) (list-length (.-unflushed st)))
+    :unflushed (list)
+    :total-committed (.-total-committed st)))
 
 (df wal-checkpoint-marker [(st WalState) (epoch I64) (snapshot-hash Str)] -> (Pair WalState WalEntry)
   :d "Appends a compaction checkpoint entry marking the snapshot boundary."

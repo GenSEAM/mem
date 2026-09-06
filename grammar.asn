@@ -136,6 +136,8 @@
           :rationale "Recovers and parses continuous stream of WAL frames from checkpoint")
     (:sym :name "wal-drain-unflushed" :kind :fn :tokens 3
           :rationale "Flushes pending in-memory write buffer to non-volatile disk storage")
+    (:sym :name "wal-rollback-unflushed" :kind :fn :tokens 3
+          :rationale "Rollback unflushed WAL entries in memory")
     (:sym :name "wal-checkpoint-marker" :kind :fn :tokens 3
           :rationale "Inserts checkpoint boundary marker truncating preceding log frames")
     (:sym :name "op-type-to-string" :kind :fn :tokens 4
