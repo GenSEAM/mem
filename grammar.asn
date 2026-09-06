@@ -221,5 +221,22 @@
           :rationale "Unit test for graceful fallback on empty YAML input")
     (:sym :name "run-migration-tests" :kind :fn :tokens 3
           :rationale "Executes complete PCP to ASL-MEM migration unit test suite")
+
+    ;; Daemon & Multi-Level Configuration Symbols
+    (:sym :name "DaemonConfig" :kind :type :tokens 1)
+    (:sym :name "DaemonState" :kind :type :tokens 1)
+    (:sym :name "BufferRecord" :kind :type :tokens 1)
+    (:sym :name "ConfigHierarchy" :kind :type :tokens 1)
+    (:sym :name "make-daemon-config" :kind :fn :tokens 3
+          :rationale "Constructs canonical daemon operational parameters")
+    (:sym :name "make-daemon-state" :kind :fn :tokens 3
+          :rationale "Initializes empty daemon state with specified configuration")
+    (:sym :name "untangle-step" :kind :fn :tokens 2)
+    (:sym :name "resolve-hierarchical-config" :kind :fn :tokens 3
+          :rationale "Multi-level configuration resolution across workspace and subproject tiers")
+    (:sym :name "dispatch-rpc-op" :kind :fn :tokens 3
+          :rationale "Dispatches incoming RPC requests across daemon subsystem handlers")
+    (:sym :name "evict-lru-buffers" :kind :fn :tokens 3
+          :rationale "LRU buffer eviction to bound memory ceiling in long-running sessions")
   ]
 )
