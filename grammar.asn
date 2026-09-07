@@ -78,6 +78,16 @@
     (:sym :name "vector-softmax" :kind :fn :tokens 2)
     (:sym :name "main" :kind :fn :tokens 1)
     (:sym :name "run-tests" :kind :fn :tokens 2)
+    (:sym :name "Bm25Doc" :kind :type :tokens 1)
+    (:sym :name "Bm25Index" :kind :type :tokens 1)
+    (:sym :name "Bm25Score" :kind :type :tokens 1)
+    (:sym :name "RrfScore" :kind :type :tokens 1)
+    (:sym :name "fast-ln" :kind :fn :tokens 2)
+    (:sym :name "tokenize-terms" :kind :fn :tokens 2)
+    (:sym :name "compute-idf" :kind :fn :tokens 2)
+    (:sym :name "calc-idf" :kind :fn :tokens 2)
+    (:sym :name "score-bm25" :kind :fn :tokens 2)
+    (:sym :name "rank-bm25" :kind :fn :tokens 2)
 
     ;; Extended Operations (> 2 tokens with required :rationale)
     (:sym :name "create-snapshot-frame" :kind :fn :tokens 3
@@ -271,6 +281,17 @@
           :rationale "Formats BatchStep record to canonical S-expression string representation")
     (:sym :name "run-asl-batch" :kind :fn :tokens 3
           :rationale "Main daemon entrypoint processing S-expression batch transactions in pure ASL")
+    (:sym :name "make-bm25-index" :kind :fn :tokens 3
+          :rationale "Builds inverted term-document frequency index and average length")
+    (:sym :name "sort-bm25-scores" :kind :fn :tokens 3
+          :rationale "Pure ASL insertion sort descending by BM25 score")
+    (:sym :name "sort-rrf-scores" :kind :fn :tokens 3
+          :rationale "Pure ASL insertion sort descending by fused RRF score")
+    (:sym :name "fuse-ranks-rrf" :kind :fn :tokens 3
+          :rationale "Merges dense and lexical candidate lists via reciprocal rank fusion")
+    (:sym :name "reciprocal-rank-fusion" :kind :fn :tokens 3
+          :rationale "Combines dense vector similarity and lexical ranking into hybrid score")
   ]
 )
+
 
