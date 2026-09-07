@@ -4,8 +4,15 @@
       DaemonState
       BufferRecord
       ConfigHierarchy
+      StepStatus
+      BatchStep
+      BatchResult
       make-daemon-config
       make-daemon-state
+      make-batch-step
+      make-batch-result
+      is-batch-failure?
+      evaluate-batch-policy
       resolve-hierarchical-config
       dispatch-rpc-op
       evict-lru-buffers
@@ -49,6 +56,29 @@
   (:f symbols-count I64 "Total tracked symbol records in AST graph")
   (:f dirty-buffers-count I64 "Count of unpersisted in-memory buffers")
   (:f is-ready Bool "True if snapshot is loaded and socket is listening"))
+
+(dfe StepStatus
+  (:c st-ok [] "Step executed successfully")
+  (:c st-rejected [] "Step rejected by gate, airgap, or balance validator")
+  (:c st-failed [] "Step encountered execution or runtime error")
+  (:c st-aborted [] "Step skipped due to fail-fast error policy in batch"))
+
+(dfs BatchStep
+  (:f id I64 "One-based batch sequence step identifier")
+  (:f op Str "Canonical operation name")
+  (:f status StepStatus "Diagnostic completion status of step")
+  (:f error-code (Option Str) "Standardized error code keyword")
+  (:f reason (Option Str) "Failure or rejection diagnostic message")
+  (:f output Str "Step payload response output"))
+
+(dfs BatchResult
+  (:f status StepStatus "Overall batch execution status")
+  (:f failed-step-index I64 "Index of first failing step or zero if clean")
+  (:f error-code (Option Str) "Top-level failure error code")
+  (:f reason (Option Str) "Top-level failure explanation")
+  (:f executed-count I64 "Total steps executed before completion or abort")
+  (:f total-steps I64 "Total steps planned in batch")
+  (:f steps (List BatchStep) "Sequence of step execution results"))
 
 (df make-daemon-config [(sock Str) (max-buf I64) (airgap Bool)] -> DaemonConfig
   :d "Constructs canonical daemon operational parameters."
@@ -211,4 +241,40 @@
     false
     (or (not (string-empty? sock))
         (not (string-empty? pid-file)))))
+
+(df make-batch-step [(id I64) (op Str) (status StepStatus) (code (Option Str)) (reason (Option Str)) (out Str)] -> BatchStep
+  :d "Constructs a standardized batch step diagnostic record."
+  (BatchStep
+    :id id
+    :op op
+    :status status
+    :error-code code
+    :reason reason
+    :output out))
+
+(df make-batch-result [(status StepStatus) (failed-idx I64) (code (Option Str)) (reason (Option Str)) (exec-count I64) (total I64) (steps (List BatchStep))] -> BatchResult
+  :d "Constructs a top-level batch execution response envelope record."
+  (BatchResult
+    :status status
+    :failed-step-index failed-idx
+    :error-code code
+    :reason reason
+    :executed-count exec-count
+    :total-steps total
+    :steps steps))
+
+(df is-batch-failure? [(res BatchResult)] -> Bool
+  :d "Determines if a batch execution envelope indicates failure or rejection."
+  (mt (.-status res)
+    ((st-ok) false)
+    ((st-rejected) true)
+    ((st-failed) true)
+    ((st-aborted) true)))
+
+(df evaluate-batch-policy [(has-error Bool) (policy Str)] -> Bool
+  :d "Evaluates whether batch execution should continue based on error state and on-error policy."
+  (if has-error
+    (= policy "continue")
+    true))
+
 

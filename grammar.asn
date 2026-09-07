@@ -254,6 +254,17 @@
           :rationale "Asserts whether a file extension belongs to supported polyglot source formats")
     (:sym :name "clean-dead-socket-record" :kind :fn :tokens 4
           :rationale "Determines if dead socket and pid artifacts should be purged when daemon is inactive")
+    (:sym :name "make-batch-step" :kind :fn :tokens 3
+          :rationale "Constructs an indexed batch step record for atomic execution in VFS")
+    (:sym :name "make-batch-result" :kind :fn :tokens 3
+          :rationale "Formats batch step execution result with duration and output payload")
+    (:sym :name "is-batch-failure?" :kind :fn :tokens 3
+          :rationale "Determines whether an individual batch execution step encountered an error")
+    (:sym :name "evaluate-batch-policy" :kind :fn :tokens 3
+          :rationale "Evaluates sequential or parallel execution strategy across batch items")
+    (:sym :name "StepStatus" :kind :type :tokens 1)
+    (:sym :name "BatchStep" :kind :type :tokens 1)
+    (:sym :name "BatchResult" :kind :type :tokens 1)
   ]
 )
 

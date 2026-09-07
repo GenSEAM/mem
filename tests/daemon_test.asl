@@ -123,6 +123,35 @@
          (not c3)
          c4)))
 
+(df test-batch-step-and-result [] -> Bool
+  :d "Verifies batch step and batch result record construction and failure detection."
+  (let [(st-ok-val (d/st-ok))
+        (st-fail-val (d/st-failed))
+        (s1 (d/make-batch-step 1 "read" st-ok-val (none) (none) "(:content \"hello\")"))
+        (s2 (d/make-batch-step 2 "edit" st-fail-val (some ":ERR_STRING_NOT_FOUND") (some "Target not found") ""))
+        (res-ok (d/make-batch-result st-ok-val 0 (none) (none) 1 1 (list s1)))
+        (res-err (d/make-batch-result st-fail-val 2 (some ":ERR_STRING_NOT_FOUND") (some "Target not found") 2 2 (list s1 s2)))]
+    (and (= (.-id s1) 1)
+         (= (.-op s1) "read")
+         (= (.-id s2) 2)
+         (= (.-op s2) "edit")
+         (not (d/is-batch-failure? res-ok))
+         (d/is-batch-failure? res-err)
+         (= (.-failed-step-index res-err) 2)
+         (= (.-executed-count res-err) 2)
+         (= (.-total-steps res-err) 2))))
+
+(df test-evaluate-batch-policy [] -> Bool
+  :d "Verifies batch policy evaluation under abort and continue configurations."
+  (let [(c1 (d/evaluate-batch-policy false "abort"))
+        (c2 (d/evaluate-batch-policy false "continue"))
+        (c3 (d/evaluate-batch-policy true "continue"))
+        (c4 (d/evaluate-batch-policy true "abort"))]
+    (and c1
+         c2
+         c3
+         (not c4))))
+
 (df run-tests [] -> Bool
   :d "Executes all daemon test suites."
   (and (test-daemon-config)
@@ -135,5 +164,8 @@
        (test-vfs-replace-all)
        (test-is-mutation-op)
        (test-is-polyglot-ext)
-       (test-clean-dead-socket-record)))
+       (test-clean-dead-socket-record)
+       (test-batch-step-and-result)
+       (test-evaluate-batch-policy)))
+
 
