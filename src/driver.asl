@@ -3,7 +3,7 @@
   :x [VectorRecord
       create-record
       cosine-similarity]
-  :i [])
+  :i [(math :a m)])
 
 (dfs VectorRecord
   (:f id Str "Unique memory entry ID")
@@ -15,5 +15,5 @@
   (VectorRecord :id id :content text :embedding emb))
 
 (df cosine-similarity [(v1 (List F64)) (v2 (List F64))] -> F64
-  :d "Computes cosine similarity between two unit vectors."
-  1.0)
+  :d "Computes cosine similarity between two vectors via Euclidean L2 normalization."
+  (m/vector-cosine-sim v1 v2))

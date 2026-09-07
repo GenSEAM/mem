@@ -26,13 +26,18 @@
       0.0
       (/ 1.0 (sqrt x))))
 
+(df vector-dot-helper [(a (List F64)) (b (List F64)) (acc F64)] -> F64
+  (if (or (list-empty? a) (list-empty? b))
+      acc
+      (let [(h-a (option-or (list-head a) 0.0))
+            (h-b (option-or (list-head b) 0.0))
+            (t-a (option-or (list-tail a) (list)))
+            (t-b (option-or (list-tail b) (list)))]
+        (vector-dot-helper t-a t-b (+ acc (* h-a h-b))))))
+
 (df vector-dot [(a (List F64)) (b (List F64))] -> F64
   (:d "Dot product of two Float64 vectors")
-  (let [(pairs (list-zip a b))]
-    (fold (fn [(acc F64) (p (Pair F64 F64))]
-            (+ acc (* (fst p) (snd p))))
-          0.0
-          pairs)))
+  (vector-dot-helper a b 0.0))
 
 (df vector-norm [(v (List F64))] -> F64
   (:d "Euclidean L2 norm of a vector")
@@ -46,9 +51,18 @@
         0.0
         (/ (vector-dot a b) (* norm-a norm-b)))))
 
+(df vector-add-helper [(a (List F64)) (b (List F64)) (acc (List F64))] -> (List F64)
+  (if (or (list-empty? a) (list-empty? b))
+      acc
+      (let [(h-a (option-or (list-head a) 0.0))
+            (h-b (option-or (list-head b) 0.0))
+            (t-a (option-or (list-tail a) (list)))
+            (t-b (option-or (list-tail b) (list)))]
+        (vector-add-helper t-a t-b (list-append acc (list (+ h-a h-b)))))))
+
 (df vector-add [(a (List F64)) (b (List F64))] -> (List F64)
   (:d "Element-wise vector addition")
-  (list-map (fn [(p (Pair F64 F64))] (+ (fst p) (snd p))) (list-zip a b)))
+  (vector-add-helper a b (list)))
 
 (df vector-scale [(v (List F64)) (s F64)] -> (List F64)
   (:d "Scale vector by scalar factor")

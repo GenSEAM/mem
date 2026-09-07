@@ -47,6 +47,14 @@
   (:f wal-entries-committed I64 "Count of committed WAL log entries")
   (:f evicted-count I64 "Total items evicted from working ring"))
 
+(dfs EnginePair
+  (:f first Any "First component")
+  (:f second Any "Second component"))
+
+(df pair [(a Any) (b Any)] -> EnginePair
+  :d "Constructs a pair record with first and second accessors."
+  (EnginePair :first a :second b))
+
 (df make-engine [(mode StorageMode) (ring-cap I64) (wal-path Str) (snap-path Str)] -> MemoryEngine
   :d "Initializes a unified MemoryEngine with chosen storage tier configuration."
   (let [(cfg (StorageConfig
@@ -231,6 +239,27 @@
           (none)))
       (none))))
 
+(df parse-vector-frame [(frame Str)] -> (Option s/VectorItem)
+  :d "Parses serialized @v:{id|text|[f1,f2,...]} into a VectorItem."
+  (let [(trimmed (string-trim frame))]
+    (if (and (string-starts-with? trimmed "@v:{")
+             (string-ends-with? trimmed "}"))
+      (let [(inner-len (- (string-length trimmed) 5))
+            (inner (option-or (string-slice trimmed 4 (+ 4 inner-len)) ""))
+            (parts (string-split inner "|"))]
+        (if (>= (list-length parts) 3)
+          (let [(id (option-or (list-head parts) ""))
+                (p1 (option-or (list-tail parts) (list)))
+                (text (option-or (list-head p1) ""))
+                (p2 (option-or (list-tail p1) (list)))
+                (raw-vec (option-or (list-head p2) "[]"))
+                (clean-vec (string-replace (string-replace raw-vec "[" "") "]" ""))
+                (num-strs (if (string-empty? clean-vec) (list) (string-split clean-vec ",")))
+                (vec (map (fn [(s Str)] -> F64 (option-or (string-to-float64 (string-trim s)) 0.0)) num-strs))]
+            (some (s/VectorItem :id id :text text :vector vec)))
+          (none)))
+      (none))))
+
 (df engine-apply-wal-entry [(eng MemoryEngine) (entry w/WalEntry)] -> MemoryEngine
   :d "Applies a single replayed WAL entry to reconstruct memory state."
   (let [(next-wal (w/WalState
@@ -239,7 +268,7 @@
                     :unflushed (list)
                     :total-committed (.-seq-num entry)))]
     (mt (.-op-type entry)
-      ((w/op-del-node)
+      ((op-del-node)
        (MemoryEngine
          :config (.-config eng)
          :ring (.-ring eng)
@@ -247,7 +276,7 @@
          :graph (g/remove-node (.-graph eng) (.-key entry))
          :wal next-wal
          :last-checkpoint-epoch (.-last-checkpoint-epoch eng)))
-      ((w/op-checkpoint)
+      ((op-checkpoint)
        (MemoryEngine
          :config (.-config eng)
          :ring (.-ring eng)
@@ -255,7 +284,7 @@
          :graph (.-graph eng)
          :wal next-wal
          :last-checkpoint-epoch (.-timestamp-epoch entry)))
-      ((w/op-put-node)
+      ((op-put-node)
        (mt (parse-node-frame (.-payload entry))
          ((some n)
           (MemoryEngine
@@ -266,7 +295,7 @@
             :wal next-wal
             :last-checkpoint-epoch (.-last-checkpoint-epoch eng)))
          ((none) eng)))
-      ((w/op-put-edge)
+      ((op-put-edge)
        (mt (parse-edge-frame (.-payload entry))
          ((some e)
           (MemoryEngine
@@ -277,7 +306,21 @@
             :wal next-wal
             :last-checkpoint-epoch (.-last-checkpoint-epoch eng)))
          ((none) eng)))
-      ((w/op-put-vector) eng))))
+      ((op-put-vector)
+       (mt (parse-vector-frame (.-payload entry))
+         ((some item)
+          (let [(next-vectors (s/VectorStore
+                                :name (.-name (.-vectors eng))
+                                :dimensions (.-dimensions (.-vectors eng))
+                                :items (list-append (.-items (.-vectors eng)) (list item))))]
+            (MemoryEngine
+              :config (.-config eng)
+              :ring (.-ring eng)
+              :vectors next-vectors
+              :graph (.-graph eng)
+              :wal next-wal
+              :last-checkpoint-epoch (.-last-checkpoint-epoch eng))))
+         ((none) eng))))))
 
 (df engine-recover [(eng MemoryEngine) (raw-wal-log Str)] -> MemoryEngine
   :d "Rehydrates MemoryEngine state by replaying a complete stream of WAL entries."

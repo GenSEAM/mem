@@ -1,6 +1,7 @@
 (module asl-mem/engine-test
   :d "Unit tests for RingBuffer overflow policies, WAL logging, snapshotting, and StorageEngine modes."
-  :x [run-tests]
+  :x [run-tests
+      test-wal-vector-recovery]
   :i [(ring :a r)
       (wal :a w)
       (graph :a g)
@@ -16,12 +17,13 @@
         (is-full (r/ring-is-full? (.-buffer res3)))
         (res4 (r/ring-push (.-buffer res3) "item-4"))
         (recent (r/ring-peek-recent (.-buffer res4) 3))]
-    (and is-full
-         (and (.-was-evicted res4)
-              (and (= (.-evicted-count (.-buffer res4)) 1)
-                   (and (= (list-length recent) 3)
-                        (and (= (option-or (list-head recent) "") "item-2")
-                             (= (r/ring-utilization (.-buffer res4)) 100))))))))
+    (assert is-full "Ring buffer must be full after 3 pushes")
+    (assert (.-was-evicted res4) "Fourth push must trigger eviction")
+    (assert (= (.-evicted-count (.-buffer res4)) 1) "Evicted count must be 1")
+    (assert (= (list-length recent) 3) "Recent items length must be 3")
+    (assert (= (option-or (list-head recent) "") "item-2") "Oldest retained item must be item-2")
+    (assert (= (r/ring-utilization (.-buffer res4)) 100) "Ring utilization must be 100")
+    true))
 
 (df test-ring-buffer-reject [] -> Bool
   :d "Verifies backpressure policy rejects entries when at capacity."
@@ -29,9 +31,10 @@
         (res1 (r/ring-push buf0 "a"))
         (res2 (r/ring-push (.-buffer res1) "b"))
         (res3 (r/ring-push (.-buffer res2) "c"))]
-    (and (r/ring-is-full? (.-buffer res2))
-         (and (.-rejected res3)
-              (= (list-length (.-items (.-buffer res3))) 2)))))
+    (assert (r/ring-is-full? (.-buffer res2)) "Ring buffer must be full at capacity 2")
+    (assert (.-rejected res3) "Pushing beyond capacity must be rejected")
+    (assert (= (list-length (.-items (.-buffer res3))) 2) "Items count must remain at capacity 2")
+    true))
 
 (df test-wal-serialization [] -> Bool
   :d "Verifies formatting and parsing of WAL log frames."
@@ -42,10 +45,15 @@
         (parsed (w/parse-wal-frame frame))]
     (mt parsed
       ((some p)
-       (and (= (.-seq-num p) 1)
-            (and (= (.-key p) "v-1")
-                 (= (.-timestamp-epoch p) 1740000000))))
-      ((none) false))))
+       (do
+         (assert (= (.-seq-num p) 1) "Sequence number must be 1")
+         (assert (= (.-key p) "v-1") "Key must match v-1")
+         (assert (= (.-timestamp-epoch p) 1740000000) "Timestamp must match 1740000000")
+         true))
+      ((none)
+       (do
+         (assert false "Parsed entry must not be none")
+         false)))))
 
 (df test-graph-batch-and-index [] -> Bool
   :d "Verifies batch node insertion and O(1) indexed lookup."
@@ -59,10 +67,11 @@
         (found-n1 (g/find-node-fast idx "n1"))
         (neighbors (g/find-neighbors-fast idx "n1"))
         (is-found (mt found-n1 ((some _) true) ((none) false)))]
-    (and (= (list-length (.-nodes g-full)) 2)
-         (and (= (list-length (.-edges g-full)) 1)
-              (and is-found
-                   (= (list-length neighbors) 1))))))
+    (assert (= (list-length (.-nodes g-full)) 2) "Graph must contain 2 nodes")
+    (assert (= (list-length (.-edges g-full)) 1) "Graph must contain 1 edge")
+    (assert is-found "Node n1 must be found in graph index")
+    (assert (= (list-length neighbors) 1) "Node n1 must have 1 neighbor")
+    true))
 
 (df test-engine-lifecycle [] -> Bool
   :d "Verifies engine state transitions across storage modes."
@@ -73,11 +82,12 @@
         (stats (eng/engine-stats eng2))
         (snap-pair (eng/engine-checkpoint eng2 2000))
         (snap-text (.-second snap-pair))]
-    (and (= (.-vector-count stats) 1)
-         (and (= (.-node-count stats) 1)
-              (and (= (.-wal-entries-committed stats) 2)
-                   (and (string-contains? snap-text "@snap:{v1|")
-                        (string-contains? snap-text "@v:{v-1")))))))
+    (assert (= (.-vector-count stats) 1) "Vector count must be 1")
+    (assert (= (.-node-count stats) 1) "Node count must be 1")
+    (assert (= (.-wal-entries-committed stats) 2) "Committed WAL entries must be 2")
+    (assert (string-contains? snap-text "@snap:{v1|") "Snapshot must contain header")
+    (assert (string-contains? snap-text "@v:{v-1") "Snapshot must contain vector entry")
+    true))
 
 (df test-wal-crash-recovery [] -> Bool
   :d "Verifies that an engine recovers graph nodes, edges, deletions, and sequence number from replaying a WAL stream."
@@ -90,9 +100,23 @@
         (base-eng (eng/make-engine (eng/mode-journaled-wal) 10 "/tmp/eng.wal" "/tmp/snap.asn"))
         (recovered (eng/engine-recover base-eng wal-log))
         (stats (eng/engine-stats recovered))]
-    (and (= (.-node-count stats) 1)
-         (and (= (.-edge-count stats) 0)
-              (= (.-wal-entries-committed stats) 4)))))
+    (assert (= (.-node-count stats) 1) "Recovered node count must be 1")
+    (assert (= (.-edge-count stats) 0) "Recovered edge count must be 0 after deletion")
+    (assert (= (.-wal-entries-committed stats) 4) "Recovered WAL sequence must be 4")
+    true))
+
+(df test-wal-vector-recovery [] -> Bool
+  :d "Verifies that vector embeddings are recovered and indexed from a replayed WAL log."
+  (let [(wal-log (string-join (list
+                   "@wal:{1|1000|v+|v-1|@v:{v-1|query embedding|[0.5,0.5]}}"
+                   "@wal:{2|1001|v+|v-2|@v:{v-2|document embedding|[0.8,0.2]}}")
+                 "\n"))
+        (base-eng (eng/make-engine (eng/mode-journaled-wal) 10 "/tmp/eng.wal" "/tmp/snap.asn"))
+        (recovered (eng/engine-recover base-eng wal-log))
+        (stats (eng/engine-stats recovered))]
+    (assert (= (.-vector-count stats) 2) "Recovered vector count must be 2")
+    (assert (= (.-wal-entries-committed stats) 2) "Recovered committed WAL sequence must be 2")
+    true))
 
 (df test-wal-rollback [] -> Bool
   :d "Verifies that rolling back unflushed WAL entries restores previous committed sequence."
@@ -101,9 +125,10 @@
         (pair2 (w/append-wal-entry (.-first pair1) (w/op-put-node) "n-2" "node-data-2" 1001))
         (st-dirty (.-first pair2))
         (st-rolled (w/wal-rollback-unflushed st-dirty))]
-    (and (= (list-length (.-unflushed st-dirty)) 2)
-         (and (= (list-length (.-unflushed st-rolled)) 0)
-              (= (.-current-seq st-rolled) 0)))))
+    (assert (= (list-length (.-unflushed st-dirty)) 2) "Dirty unflushed list length must be 2")
+    (assert (= (list-length (.-unflushed st-rolled)) 0) "Rolled back unflushed list length must be 0")
+    (assert (= (.-current-seq st-rolled) 0) "Rolled back sequence must be 0")
+    true))
 
 (df run-tests [] -> Bool
   :d "Executes all storage engine and ring buffer test suites."
@@ -115,4 +140,5 @@
               (test-graph-batch-and-index)
               (test-engine-lifecycle)
               (test-wal-crash-recovery)
+              (test-wal-vector-recovery)
               (test-wal-rollback))))

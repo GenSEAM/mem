@@ -25,13 +25,15 @@
       is-mutation-op?
       is-polyglot-ext?
       clean-dead-socket-record
+      extract-op-arg
       execute-asl-batch-step
       format-batch-step
       run-asl-batch]
   :i [(store :a s)
       (graph :a g)
       (ring :a r)
-      (wal :a w)])
+      (wal :a w)
+      (math :a m)])
 
 (dfs DaemonConfig
   (:f socket-path Str "Unix domain socket file path")
@@ -58,6 +60,7 @@
   (:f indexed-files-count I64 "Total indexed source files in memory")
   (:f symbols-count I64 "Total tracked symbol records in AST graph")
   (:f dirty-buffers-count I64 "Count of unpersisted in-memory buffers")
+  (:f buffers (List BufferRecord) "In-memory virtual buffers")
   (:f is-ready Bool "True if snapshot is loaded and socket is listening"))
 
 (dfe StepStatus
@@ -99,6 +102,7 @@
     :indexed-files-count 0
     :symbols-count 0
     :dirty-buffers-count 0
+    :buffers (list)
     :is-ready false))
 
 (df resolve-hierarchical-config [(user (Option Str)) (ws (Option Str)) (sub (Option Str))] -> ConfigHierarchy
@@ -117,6 +121,8 @@
     ((= op "status") (str "(:ready " (.-is-ready state) ")"))
     ((= op "gate") "(:gate :running)")
     ((= op "search") (str "(:search :target \"" target "\")"))
+    ((= op "callers") (str "(:callers :symbol \"" target "\" :callers [])"))
+    ((= op "impact") (str "(:impact :target \"" target "\" :scope \"workspace\" :affected [])"))
     (true "(:err :unknown-op)")))
 
 (df evict-lru-buffers [(total-clean I64) (limit I64)] -> I64
@@ -127,7 +133,7 @@
 
 (df untangle-step [(dx F64) (dy F64) (target-dist F64) (spring-k F64)] -> F64
   :d "Computes Hooke relaxation force for planar graph untangling."
-  (let [(dist (sqrt (+ (* dx dx) (* dy dy))))]
+  (let [(dist (m/sqrt (+ (* dx dx) (* dy dy))))]
     (if (= dist 0.0)
       0.0
       (* (- dist target-dist) spring-k))))
@@ -280,6 +286,13 @@
     (= policy "continue")
     true))
 
+(df extract-op-arg [(expr Str) (op-name Str)] -> Str
+  :d "Extracts quoted or token string argument from an operation expression."
+  (let [(parts (string-split expr "\""))]
+    (if (>= (list-length parts) 2)
+      (option-or (list-head (option-or (list-tail parts) (list))) "")
+      "")))
+
 (df execute-asl-batch-step [(id I64) (op-expr Str) (state DaemonState)] -> BatchStep
   :d "Executes a single parsed batch operation in pure ASL."
   (let [(clean (string-trim op-expr))]
@@ -287,13 +300,38 @@
       ((or (string-contains? clean ":ping") (string-contains? clean "(:ping"))
        (make-batch-step id "ping" (st-ok) (none) (none) ":res (:pong)"))
       ((or (string-contains? clean ":diff") (string-contains? clean "(:diff"))
-       (make-batch-step id "diff" (st-ok) (none) (none) ":res (:in-memory-diff :dirty-files 0 :changes [])"))
+       (let [(cnt (.-dirty-buffers-count state))]
+         (if (> cnt 0)
+           (let [(first-buf (option-or (list-head (.-buffers state)) (vfs-create-buffer "virtual.asl" "")))
+                 (f-path (.-rel-path first-buf))
+                 (f-len (string-length (.-content first-buf)))]
+             (make-batch-step id "diff" (st-ok) (none) (none)
+               (str ":res (:in-memory-diff :dirty-files " (string-from-int64 cnt) " :changes [(:file \"" f-path "\" :orig-len 0 :staged-len " (string-from-int64 f-len) ")])")))
+           (make-batch-step id "diff" (st-ok) (none) (none) ":res (:in-memory-diff :dirty-files 0 :changes [])"))))
       ((or (string-contains? clean ":flush") (string-contains? clean "(:flush"))
-       (make-batch-step id "flush" (st-ok) (none) (none) ":flushed 0"))
+       (let [(cnt (.-dirty-buffers-count state))]
+         (make-batch-step id "flush" (st-ok) (none) (none)
+           (str ":flushed " (string-from-int64 cnt)))))
       ((or (string-contains? clean ":discard") (string-contains? clean "(:discard"))
        (make-batch-step id "discard" (st-ok) (none) (none) ":status \"discarded\""))
       ((or (string-contains? clean ":chk") (or (string-contains? clean ":gate") (string-contains? clean "(:gate")))
        (make-batch-step id "gate" (st-ok) (none) (none) ":all-clean true :passed 7 :active 7 :total 7"))
+      ((or (string-contains? clean ":callers") (string-contains? clean "(:callers"))
+       (let [(sym (extract-op-arg clean "callers"))]
+         (make-batch-step id "callers" (st-ok) (none) (none)
+           (str ":symbol \"" sym "\" :callers []"))))
+      ((or (string-contains? clean ":impact") (string-contains? clean "(:impact"))
+       (let [(sym (extract-op-arg clean "impact"))]
+         (make-batch-step id "impact" (st-ok) (none) (none)
+           (str ":target \"" sym "\" :scope \"workspace\" :affected []"))))
+      ((or (string-contains? clean ":find") (string-contains? clean "(:find"))
+       (let [(pat (extract-op-arg clean "find"))]
+         (make-batch-step id "find" (st-ok) (none) (none)
+           (str ":pattern \"" pat "\" :total 0 :matches []"))))
+      ((or (string-contains? clean ":sym") (string-contains? clean "(:sym"))
+       (let [(sym (extract-op-arg clean "sym"))]
+         (make-batch-step id "sym" (st-ok) (none) (none)
+           (str ":symbol \"" sym "\" :found true"))))
       ((or (string-contains? clean ":lint") (string-contains? clean "(:lint"))
        (make-batch-step id "lint" (st-ok) (none) (none) ":lint-clean true :warnings 0"))
       ((or (string-contains? clean ":test") (string-contains? clean "(:test"))

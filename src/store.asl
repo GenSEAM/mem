@@ -25,10 +25,18 @@
           x
           (range 0 24))))
 
+(df dot-helper [(a (List F64)) (b (List F64)) (acc F64)] -> F64
+  (if (or (list-empty? a) (list-empty? b))
+      acc
+      (let [(h-a (option-or (list-head a) 0.0))
+            (h-b (option-or (list-head b) 0.0))
+            (t-a (option-or (list-tail a) (list)))
+            (t-b (option-or (list-tail b) (list)))]
+        (dot-helper t-a t-b (+ acc (* h-a h-b))))))
+
 (df dot [(a (List F64)) (b (List F64))] -> F64
   :d "Sum of pairwise products, truncating to the shorter vector."
-  (list-sum (map (fn [(p (Pair F64 F64))] -> F64 (* (.-first p) (.-second p)))
-                 (zip a b))))
+  (dot-helper a b 0.0))
 
 (df vector-norm [(v (List F64))] -> F64
   :d "Euclidean L2 norm."

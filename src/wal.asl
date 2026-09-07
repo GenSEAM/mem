@@ -34,6 +34,14 @@
   (:f unflushed (List WalEntry) "Buffered entries awaiting file flush")
   (:f total-committed I64 "Lifetime committed entries count"))
 
+(dfs WalPair
+  (:f first Any "First component")
+  (:f second Any "Second component"))
+
+(df pair [(a Any) (b Any)] -> WalPair
+  :d "Constructs a pair record with first and second accessors."
+  (WalPair :first a :second b))
+
 (df op-type-to-string [(op WalOpType)] -> Str
   :d "Converts WalOpType to wire string identifier."
   (mt op
@@ -46,11 +54,11 @@
 (df string-to-op-type [(s Str)] -> (Option WalOpType)
   :d "Parses wire string identifier to WalOpType."
   (cond
-    ((= s "v+") (some (op-put-vector)))
-    ((= s "n+") (some (op-put-node)))
-    ((= s "e+") (some (op-put-edge)))
-    ((= s "n-") (some (op-del-node)))
-    ((= s "ckpt") (some (op-checkpoint)))
+    ((or (= s "v+") (= s "PUT-VECTOR")) (some (op-put-vector)))
+    ((or (= s "n+") (= s "PUT-NODE")) (some (op-put-node)))
+    ((or (= s "e+") (= s "PUT-EDGE")) (some (op-put-edge)))
+    ((or (= s "n-") (= s "DEL-NODE")) (some (op-del-node)))
+    ((or (= s "ckpt") (= s "CHECKPOINT")) (some (op-checkpoint)))
     (:else (none))))
 
 (df make-wal-state [(path Str)] -> WalState
