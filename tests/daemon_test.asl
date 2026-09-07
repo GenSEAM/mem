@@ -152,6 +152,24 @@
          c3
          (not c4))))
 
+(df test-run-asl-batch [] -> Bool
+  :d "Verifies pure ASL batch execution engine."
+  (let [(cfg (d/make-daemon-config "/tmp/asl_test.sock" 100 true))
+        (state (d/make-daemon-state cfg))
+        (res-ping (d/run-asl-batch "(:batch (:ping))" state))
+        (res-diff (d/run-asl-batch "(:batch (:diff))" state))
+        (res-flush (d/run-asl-batch "(:batch (:flush))" state))
+        (res-discard (d/run-asl-batch "(:batch (:discard))" state))
+        (res-gate (d/run-asl-batch "(:batch (:gate))" state))
+        (res-unknown (d/run-asl-batch "(:batch (:foo-bar))" state))]
+    (and (string-contains? res-ping ":op \"ping\" :status \"ok\"")
+         (string-contains? res-ping ":pong")
+         (string-contains? res-diff ":op \"diff\" :status \"ok\"")
+         (string-contains? res-flush ":op \"flush\" :status \"ok\"")
+         (string-contains? res-discard ":op \"discard\" :status \"ok\"")
+         (string-contains? res-gate ":op \"gate\" :status \"ok\"")
+         (string-contains? res-unknown ":status \"rejected\""))))
+
 (df run-tests [] -> Bool
   :d "Executes all daemon test suites."
   (and (test-daemon-config)
@@ -166,6 +184,7 @@
        (test-is-polyglot-ext)
        (test-clean-dead-socket-record)
        (test-batch-step-and-result)
-       (test-evaluate-batch-policy)))
+       (test-evaluate-batch-policy)
+       (test-run-asl-batch)))
 
 

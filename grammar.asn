@@ -265,6 +265,12 @@
     (:sym :name "StepStatus" :kind :type :tokens 1)
     (:sym :name "BatchStep" :kind :type :tokens 1)
     (:sym :name "BatchResult" :kind :type :tokens 1)
+    (:sym :name "execute-asl-batch-step" :kind :fn :tokens 3
+          :rationale "Executes a single batch step in pure ASL without external JS dependencies")
+    (:sym :name "format-batch-step" :kind :fn :tokens 3
+          :rationale "Formats BatchStep record to canonical S-expression string representation")
+    (:sym :name "run-asl-batch" :kind :fn :tokens 3
+          :rationale "Main daemon entrypoint processing S-expression batch transactions in pure ASL")
   ]
 )
 
