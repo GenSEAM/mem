@@ -291,6 +291,22 @@
           :rationale "Merges dense and lexical candidate lists via reciprocal rank fusion")
     (:sym :name "reciprocal-rank-fusion" :kind :fn :tokens 3
           :rationale "Combines dense vector similarity and lexical ranking into hybrid score")
+
+    ;; Phase 273 Research Memory Direct-Hit & Attributed Proxy Symbols
+    (:sym :name "ResearchFact" :kind :type :tokens 1)
+    (:sym :name "ResearchQueryOutcome" :kind :type :tokens 1)
+    (:sym :name "make-research-fact" :kind :fn :tokens 3
+          :rationale "Constructs canonical research knowledge fact record")
+    (:sym :name "query-research-memory" :kind :fn :tokens 3
+          :rationale "Evaluates direct cache hit vs low-confidence delegation")
+    (:sym :name "store-research-fact" :kind :fn :tokens 3
+          :rationale "Appends or updates verified research fact in memory cache")
+    (:sym :name "test-research-direct-hit-zero-tokens" :kind :fn :tokens 6
+          :rationale "Unit test validating direct cache hit returns zero tokens")
+    (:sym :name "test-research-cache-miss-delegation" :kind :fn :tokens 5
+          :rationale "Unit test validating low confidence queries trigger agent delegation")
+    (:sym :name "test-research-store-and-recall" :kind :fn :tokens 5
+          :rationale "Unit test validating storing fact enables subsequent direct hit recall")
   ]
 )
 
