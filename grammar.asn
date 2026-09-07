@@ -238,5 +238,22 @@
           :rationale "Dispatches incoming RPC requests across daemon subsystem handlers")
     (:sym :name "evict-lru-buffers" :kind :fn :tokens 3
           :rationale "LRU buffer eviction to bound memory ceiling in long-running sessions")
+    (:sym :name "vfs-create-buffer" :kind :fn :tokens 3
+          :rationale "Initializes in-memory virtual buffer record with dirty staging flag")
+    (:sym :name "vfs-delete-buffer" :kind :fn :tokens 3
+          :rationale "Creates tombstone buffer record representing a deleted file staged for disk sync")
+    (:sym :name "vfs-patch-buffer" :kind :fn :tokens 3
+          :rationale "Constructs patched virtual buffer record staging symbol replacement in memory")
+    (:sym :name "vfs-check-syntax" :kind :fn :tokens 3
+          :rationale "Validates structural delimiter balance and string literal closure in buffer")
+    (:sym :name "vfs-replace-all" :kind :fn :tokens 3
+          :rationale "Pure literal string replacement immune to regex and special token corruption")
+    (:sym :name "is-mutation-op?" :kind :fn :tokens 3
+          :rationale "Asserts whether an RPC operation mutates in-memory VFS buffers or files")
+    (:sym :name "is-polyglot-ext?" :kind :fn :tokens 3
+          :rationale "Asserts whether a file extension belongs to supported polyglot source formats")
+    (:sym :name "clean-dead-socket-record" :kind :fn :tokens 4
+          :rationale "Determines if dead socket and pid artifacts should be purged when daemon is inactive")
   ]
 )
+

@@ -9,7 +9,15 @@
       resolve-hierarchical-config
       dispatch-rpc-op
       evict-lru-buffers
-      untangle-step]
+      untangle-step
+      vfs-create-buffer
+      vfs-delete-buffer
+      vfs-patch-buffer
+      vfs-check-syntax
+      vfs-replace-all
+      is-mutation-op?
+      is-polyglot-ext?
+      clean-dead-socket-record]
   :i [(store :a s)
       (graph :a g)
       (ring :a r)
@@ -90,3 +98,117 @@
     (if (= dist 0.0)
       0.0
       (* (- dist target-dist) spring-k))))
+
+(df vfs-replace-all [(content Str) (old-str Str) (new-str Str)] -> Str
+  :d "Pure literal string replacement immune to regex and special token corruption."
+  (if (or (string-empty? old-str) (string-empty? content))
+    content
+    (string-join (string-split content old-str) new-str)))
+
+(df vfs-create-buffer [(path Str) (content Str)] -> BufferRecord
+  :d "Initializes an in-memory virtual buffer record with dirty staging flag."
+  (BufferRecord
+    :rel-path path
+    :content content
+    :is-dirty true
+    :last-access-epoch 0))
+
+(df vfs-delete-buffer [(path Str)] -> BufferRecord
+  :d "Creates a tombstone buffer record representing a deleted file staged for disk sync."
+  (BufferRecord
+    :rel-path path
+    :content ""
+    :is-dirty true
+    :last-access-epoch 0))
+
+(df vfs-patch-buffer [(path Str) (sym Str) (repl Str)] -> BufferRecord
+  :d "Constructs a patched virtual buffer record staging symbol replacement in memory."
+  (BufferRecord
+    :rel-path path
+    :content (vfs-replace-all sym sym repl)
+    :is-dirty true
+    :last-access-epoch 0))
+
+(df vfs-check-syntax [(content Str)] -> Bool
+  :d "Validates structural delimiter balance and string literal closure in virtual buffer."
+  (let [(chars (string-chars content))
+        (state (fold (fn [(acc (List I64)) (c Str)] -> (List I64)
+                       (let [(open-p (option-or (list-head acc) 0))
+                             (in-str (option-or (list-head (list-drop acc 1)) 0))
+                             (esc (option-or (list-head (list-drop acc 2)) 0))
+                             (in-comment (option-or (list-head (list-drop acc 3)) 0))
+                             (err (option-or (list-head (list-drop acc 4)) 0))]
+                         (cond
+                           ((= in-comment 1)
+                            (if (= c "\n")
+                              (list open-p in-str esc 0 err)
+                              acc))
+                           ((= in-str 1)
+                            (cond
+                              ((= esc 1) (list open-p 1 0 0 err))
+                              ((= c "\\") (list open-p 1 1 0 err))
+                              ((= c "\"") (list open-p 0 0 0 err))
+                              (true acc)))
+                           ((= c ";")
+                            (list open-p 0 0 1 err))
+                           ((= c "\"")
+                            (list open-p 1 0 0 err))
+                           ((or (= c "(") (or (= c "[") (= c "{")))
+                            (list (+ open-p 1) 0 0 0 err))
+                           ((or (= c ")") (or (= c "]") (= c "}")))
+                            (if (<= open-p 0)
+                              (list 0 0 0 0 1)
+                              (list (- open-p 1) 0 0 0 err)))
+                           (true acc))))
+                     (list 0 0 0 0 0)
+                     chars))
+        (final-p (option-or (list-head state) 0))
+        (final-str (option-or (list-head (list-drop state 1)) 0))
+        (final-err (option-or (list-head (list-drop state 4)) 0))]
+    (and (= final-p 0)
+         (= final-str 0)
+         (= final-err 0))))
+
+(df is-mutation-op? [(op Str)] -> Bool
+  :d "Asserts whether an RPC operation mutates in-memory VFS buffers or files."
+  (or (= op "edit")
+  (or (= op "replace")
+  (or (= op "create")
+  (or (= op "write")
+  (or (= op "delete")
+  (or (= op "rm")
+  (or (= op "patch")
+  (or (= op "flush")
+  (or (= op "discard")
+      (= op "exec")))))))))))
+
+(df is-polyglot-ext? [(ext Str)] -> Bool
+  :d "Asserts whether a file extension belongs to supported polyglot source formats."
+  (or (= ext ".asl")
+  (or (= ext ".asn")
+  (or (= ext ".md")
+  (or (= ext ".json")
+  (or (= ext ".js")
+  (or (= ext ".mjs")
+  (or (= ext ".cjs")
+  (or (= ext ".ts")
+  (or (= ext ".tsx")
+  (or (= ext ".py")
+  (or (= ext ".rs")
+  (or (= ext ".go")
+  (or (= ext ".sh")
+  (or (= ext ".yaml")
+  (or (= ext ".yml")
+  (or (= ext ".php")
+  (or (= ext ".toml")
+  (or (= ext ".css")
+  (or (= ext ".html")
+      (= ext ".sql")))))))))))))))))))))
+
+(df clean-dead-socket-record [(sock Str) (pid-file Str) (is-alive Bool)] -> Bool
+  :d "Determines if dead socket and pid artifacts should be purged when daemon process is inactive."
+  (if is-alive
+    false
+    (or (not (string-empty? sock))
+        (not (string-empty? pid-file)))))
+
