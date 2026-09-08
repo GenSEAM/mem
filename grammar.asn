@@ -492,6 +492,37 @@
     (:sym :name "lookup-subtree" :kind :fn :tokens 2)
     (:sym :name "reconcile-incremental-diff" :kind :fn :tokens 3
           :rationale "Reconciles incremental AST diff resolving unchanged subtree forms directly from cache")
+
+    ;; Phase 337 VFS Disk Sync, AST Merge & Context Scoring Symbols (asl-mem/vfs-sync, asl-mem/vfs-merge, asl-mem/context-scoring)
+    (:sym :name "VFSSyncState" :kind :type :tokens 1)
+    (:sym :name "make-sync-state" :kind :fn :tokens 3
+          :rationale "Initializes OCC synchronization state record for virtual file path")
+    (:sym :name "detect-disk-drift" :kind :fn :tokens 3
+          :rationale "Detects external file modifications on disk since buffer read")
+    (:sym :name "validate-flush-safety" :kind :fn :tokens 3
+          :rationale "Validates OCC CAS base-hash alignment before flushing buffer to disk")
+    (:sym :name "update-staged-hash" :kind :fn :tokens 3
+          :rationale "Records in-memory buffer mutation and updates staged revision and status")
+    (:sym :name "record-flush-success" :kind :fn :tokens 3
+          :rationale "Updates synchronization state following successful physical disk flush")
+    (:sym :name "resolve-sync-action" :kind :fn :tokens 3
+          :rationale "Evaluates current disk state and returns sync verdict")
+    (:sym :name "AstMergeResult" :kind :type :tokens 1)
+    (:sym :name "ast-3way-merge" :kind :fn :tokens 3
+          :rationale "Performs 3-way AST structural merge between base disk and staged forms")
+    (:sym :name "merge-disjoint-forms" :kind :fn :tokens 3
+          :rationale "Merges non-overlapping top-level AST forms without textual conflicts")
+    (:sym :name "format-ast-conflict" :kind :fn :tokens 3
+          :rationale "Emits structured AST conflict report detailing conflicting forms")
+    (:sym :name "ContextScoreRecord" :kind :type :tokens 1)
+    (:sym :name "make-context-record" :kind :fn :tokens 3
+          :rationale "Constructs context utility score record for managed invariant or buffer")
+    (:sym :name "calculate-context-score" :kind :fn :tokens 3
+          :rationale "Calculates multi-factor utility score protecting invariants from eviction")
+    (:sym :name "penalize-unreferenced-matches" :kind :fn :tokens 3
+          :rationale "Applies anti-bait utility score penalty to unreferenced search matches")
+    (:sym :name "evict-below-threshold" :kind :fn :tokens 3
+          :rationale "Filters out context items scoring strictly below eviction threshold")
   ]
 )
 
