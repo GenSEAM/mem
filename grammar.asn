@@ -472,6 +472,26 @@
           :rationale "Scans entire token stream returning all non-overlapping token match results")
     (:sym :name "find-token-subsequences" :kind :fn :tokens 3
           :rationale "Finds start and end index pairs of matching token subsequences in stream")
+
+    ;; Phase 336 In-Memory Hybrid Search Engine & SimHash Symbols (asl-mem/simhash, asl-mem/rrf, asl-mem/subtree-cache)
+    (:sym :name "fnv1a-64" :kind :fn :tokens 2)
+    (:sym :name "simhash-64" :kind :fn :tokens 2)
+    (:sym :name "popcount-64" :kind :fn :tokens 2)
+    (:sym :name "hamming-distance" :kind :fn :tokens 2)
+    (:sym :name "simhash-similarity" :kind :fn :tokens 2)
+    (:sym :name "RankedCandidate" :kind :type :tokens 2)
+    (:sym :name "compute-rrf-score" :kind :fn :tokens 3
+          :rationale "Computes 1/(k+rank) Reciprocal Rank Fusion component score")
+    (:sym :name "fuse-ranked-channels" :kind :fn :tokens 3
+          :rationale "Combines BM25 and SimHash candidate rankings via Reciprocal Rank Fusion")
+    (:sym :name "hybrid-code-search" :kind :fn :tokens 3
+          :rationale "Executes unified hybrid code search fusing lexical and semantic channels")
+    (:sym :name "SubtreeEntry" :kind :type :tokens 2)
+    (:sym :name "SubtreeCache" :kind :type :tokens 2)
+    (:sym :name "index-subtrees" :kind :fn :tokens 2)
+    (:sym :name "lookup-subtree" :kind :fn :tokens 2)
+    (:sym :name "reconcile-incremental-diff" :kind :fn :tokens 3
+          :rationale "Reconciles incremental AST diff resolving unchanged subtree forms directly from cache")
   ]
 )
 
