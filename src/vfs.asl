@@ -6,7 +6,8 @@
       vfs-read
       vfs-write
       vfs-cas-hash
-      vfs-diff]
+      vfs-diff
+      normalize-path]
   :i [])
 
 (dfs VFSBuffer

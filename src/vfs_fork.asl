@@ -15,15 +15,6 @@
   (:f buffers (List v/VFSBuffer) "List of isolated speculative VFS buffers")
   (:f status Str "Lifecycle status of branch: active, committed, or aborted"))
 
-(df normalize-branch-path [(path Str)] -> Str
-  :d "Normalizes virtual file path by trimming whitespace and stripping leading dot-slash or slash prefixes."
-  (let [(trimmed (string-trim path))]
-    (if (string-starts-with? trimmed "./")
-      (option-or (string-slice trimmed 2 (string-length trimmed)) "")
-      (if (string-starts-with? trimmed "/")
-        (option-or (string-slice trimmed 1 (string-length trimmed)) "")
-        trimmed))))
-
 (df find-branch-buffer [(buffers (List v/VFSBuffer)) (target-path Str)] -> (Option v/VFSBuffer)
   :d "Finds buffer in list matching canonical target path."
   (fold (fn [(acc (Option v/VFSBuffer)) (buf v/VFSBuffer)] -> (Option v/VFSBuffer)
@@ -72,7 +63,7 @@
   :d "Stages content mutations into a speculative branch buffer overlay without mutating root registry."
   (if (!= (.-status branch) "active")
     branch
-    (let [(norm (normalize-branch-path path))
+    (let [(norm (v/normalize-path path))
           (new-hash (v/vfs-cas-hash content))
           (existing-opt (find-branch-buffer (.-buffers branch) norm))
           (new-buf (mt existing-opt
@@ -129,7 +120,7 @@
 
 (df branch-diff [(branch VFSBranch) (path Str)] -> (Option Str)
   :d "Computes unified diff string for specified path in branch relative to base content."
-  (let [(norm (normalize-branch-path path))
+  (let [(norm (v/normalize-path path))
         (buf-opt (find-branch-buffer (.-buffers branch) norm))]
     (mt buf-opt
       ((none) (none))

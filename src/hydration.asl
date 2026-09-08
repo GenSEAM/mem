@@ -143,7 +143,7 @@
         "d-0021: In-Memory AST Equivalence E-Graphs & Congruence Closure"
         "d-0022: In-Memory Speculative VFS Branching & Pruning"
         "d-0023: Grammar-Trie Constrained Decoding Engine"
-        "d-0024: Shrody TaskStore State Machine & Priority Scheduler"
+        "d-0024: Memory TaskStore State Machine & Priority Scheduler"
         "d-0025: Multi-Agent Supervisor & Dual-Temperature Speculative Racing"
         "d-0026: Pure ASL WASI Lowering & Node Annihilation"
         "d-0027: Dense Tabular Pyramid & Sparkline Compaction"
@@ -158,7 +158,7 @@
     ((= id "d-0021") "d-0021: In-Memory AST Equivalence E-Graphs & Congruence Closure")
     ((= id "d-0022") "d-0022: In-Memory Speculative VFS Branching & Pruning")
     ((= id "d-0023") "d-0023: Grammar-Trie Constrained Decoding Engine")
-    ((= id "d-0024") "d-0024: Shrody TaskStore State Machine & Priority Scheduler")
+    ((= id "d-0024") "d-0024: Memory TaskStore State Machine & Priority Scheduler")
     ((= id "d-0025") "d-0025: Multi-Agent Supervisor & Dual-Temperature Speculative Racing")
     ((= id "d-0026") "d-0026: Pure ASL WASI Lowering & Node Annihilation")
     ((= id "d-0027") "d-0027: Dense Tabular Pyramid & Sparkline Compaction")

@@ -1,28 +1,10 @@
 (module asl-mem/structural-editor
   :d "Structural AST node transformer and balanced S-expression rewriting engine"
   :x [ASTTransform
-      VFSBuffer
-      ASTMatchNode
       rewrite-ast-node]
-  :i [])
-
-(dfs VFSBuffer
-  (:f path Str "Normalized virtual file path")
-  (:f content Str "Buffer text payload")
-  (:f base-content Str "Pristine or staged base content for diff computation")
-  (:f cas-hash Str "Deterministic content-addressed hash of current content")
-  (:f base-hash Str "CAS hash of pristine or staged base version")
-  (:f revision I64 "Monotonic revision counter")
-  (:f dirty Bool "Boolean flag indicating uncommitted edits relative to base")
-  (:f loaded-at I64 "Millisecond timestamp when buffer was opened or created"))
-
-(dfs ASTMatchNode
-  (:f form-type Str "Matched form type keyword")
-  (:f symbol-id Str "Matched symbol identifier")
-  (:f start-char I64 "Start character offset in buffer content")
-  (:f end-char I64 "End character offset in buffer content")
-  (:f raw-form Str "Verbatim matched S-expression text slice")
-  (:f line-number I64 "1-indexed line number where the form begins"))
+  :i [(vfs :a v)
+      (ast_filter :a af)
+      (asl-parser/balance :a bal)])
 
 (dfs ASTTransform
   (:f op Str "Mutation operation: :rename-symbol, :replace-body, :add-field, :wrap-with-assert, :remove-form")
@@ -30,66 +12,9 @@
   (:f replacement Str "New symbol name, body expression, or field form text")
   (:f field-type (Option Str) "Field type annotation when adding a field to dfs"))
 
-(dfs DelimAcc
-  (:f p-depth I64 "Paren nesting depth")
-  (:f b-depth I64 "Bracket nesting depth")
-  (:f in-str Bool "Inside string literal")
-  (:f esc Bool "Escape flag")
-  (:f valid Bool "Balance validity flag"))
-
-(df delim-step-string [(acc DelimAcc) (ch Str)] -> DelimAcc
-  :d "Processes character inside string literal for delimiter check."
-  (let [(p (.-p-depth acc))
-        (b (.-b-depth acc))
-        (esc (.-esc acc))]
-    (cond
-      (esc (DelimAcc :p-depth p :b-depth b :in-str true :esc false :valid true))
-      ((= ch "\\") (DelimAcc :p-depth p :b-depth b :in-str true :esc true :valid true))
-      ((= ch "\"") (DelimAcc :p-depth p :b-depth b :in-str false :esc false :valid true))
-      (:else acc))))
-
-(df delim-step-paren [(acc DelimAcc) (ch Str)] -> DelimAcc
-  :d "Handles parenthesis delimiter."
-  (let [(p (.-p-depth acc))
-        (b (.-b-depth acc))]
-    (cond
-      ((= ch "(") (DelimAcc :p-depth (+ p 1) :b-depth b :in-str false :esc false :valid true))
-      ((<= p 0) (DelimAcc :p-depth -1 :b-depth b :in-str false :esc false :valid false))
-      (:else (DelimAcc :p-depth (- p 1) :b-depth b :in-str false :esc false :valid true)))))
-
-(df delim-step-bracket [(acc DelimAcc) (ch Str)] -> DelimAcc
-  :d "Handles bracket delimiter."
-  (let [(p (.-p-depth acc))
-        (b (.-b-depth acc))]
-    (cond
-      ((= ch "[") (DelimAcc :p-depth p :b-depth (+ b 1) :in-str false :esc false :valid true))
-      ((<= b 0) (DelimAcc :p-depth p :b-depth -1 :in-str false :esc false :valid false))
-      (:else (DelimAcc :p-depth p :b-depth (- b 1) :in-str false :esc false :valid true)))))
-
-(df delim-step-code [(acc DelimAcc) (ch Str)] -> DelimAcc
-  :d "Processes code character outside string."
-  (cond
-    ((= ch "\"") (DelimAcc :p-depth (.-p-depth acc) :b-depth (.-b-depth acc) :in-str true :esc false :valid true))
-    ((or (= ch "(") (= ch ")")) (delim-step-paren acc ch))
-    ((or (= ch "[") (= ch "]")) (delim-step-bracket acc ch))
-    (:else acc)))
-
-(df delim-step [(acc DelimAcc) (ch Str)] -> DelimAcc
-  :d "Accumulates delimiter balance character by character."
-  (cond
-    ((not (.-valid acc)) acc)
-    ((.-in-str acc) (delim-step-string acc ch))
-    (:else (delim-step-code acc ch))))
-
 (df is-balanced-delimiters? [(text Str)] -> Bool
-  :d "Checks delimiter balance ensuring total open delimiters match closing delimiters."
-  (let [(chars (string-chars text))
-        (init (DelimAcc :p-depth 0 :b-depth 0 :in-str false :esc false :valid true))
-        (res (fold delim-step init chars))]
-    (and (.-valid res)
-         (and (= (.-p-depth res) 0)
-              (and (= (.-b-depth res) 0)
-                   (not (.-in-str res)))))))
+  :d "Checks delimiter balance ensuring total open delimiters match closing delimiters via canonical asl-parser/balance."
+  (bal/is-delimiter-balanced? text))
 
 (df char-to-code [(ch Str)] -> I64
   :d "Maps single character to deterministic integer code."
@@ -128,7 +53,7 @@
           (next-best (if (= c ")") idx best))]
       (find-last-paren-idx chars (+ idx 1) next-best))))
 
-(df mutate-rename-symbol [(raw Str) (node ASTMatchNode) (m ASTTransform)] -> Str
+(df mutate-rename-symbol [(raw Str) (node af/ASTMatchNode) (m ASTTransform)] -> Str
   :d "Renames symbol identifier in form."
   (let [(target (if (string-empty? (.-target-symbol m))
                   (.-symbol-id node)
@@ -210,7 +135,7 @@
     (option-or (string-slice op 1 (string-length op)) "")
     op))
 
-(df apply-ast-mutation [(raw Str) (node ASTMatchNode) (m ASTTransform)] -> Str
+(df apply-ast-mutation [(raw Str) (node af/ASTMatchNode) (m ASTTransform)] -> Str
   :d "Applies targeted structural AST mutation to raw form."
   (let [(op (normalize-mutation-op (.-op m)))]
     (cond
@@ -221,7 +146,7 @@
       ((= op "remove-form") "")
       (:else raw))))
 
-(df rewrite-ast-node [(buffer VFSBuffer) (node ASTMatchNode) (mutation ASTTransform)] -> VFSBuffer
+(df rewrite-ast-node [(buffer v/VFSBuffer) (node af/ASTMatchNode) (mutation ASTTransform)] -> v/VFSBuffer
   :d "Rewrites matched AST node within buffer ensuring delimiter balance and CAS integrity."
   (let [(raw (.-raw-form node))
         (mutated (apply-ast-mutation raw node mutation))
@@ -237,7 +162,7 @@
             (new-hash (compute-cas-hash new-content))
             (base-h (.-base-hash buffer))
             (is-dirty (!= new-hash base-h))]
-        (VFSBuffer
+        (v/VFSBuffer
           :path (.-path buffer)
           :content new-content
           :base-content (.-base-content buffer)

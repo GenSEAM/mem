@@ -13,7 +13,7 @@
       task-start
       task-complete
       task-format-asn]
-  :i [])
+  :i [(vfs :a v)])
 
 (dfs TaskRecord
   (:f id Str "Unique task identifier e.g. task-325-1")
@@ -48,19 +48,23 @@
     :receipts (list)))
 
 (df task-owns-file? [(task TaskRecord) (file Str)] -> Bool
-  :d "Checks if a task declared ownership over a specific file path."
-  (list-contains? (.-owns task) file))
+  :d "Checks if a task declared ownership over a specific file path using normalized path comparison."
+  (let [(norm (v/normalize-path file))
+        (owns-norm (map (fn [(f Str)] -> Str (v/normalize-path f)) (.-owns task)))]
+    (list-contains? owns-norm norm)))
 
 (df task-owns-intersect? [(t1 TaskRecord) (t2 TaskRecord)] -> Bool
   :d "Checks if two tasks declare overlapping file ownership, ignoring dash placeholder."
-  (let [(files1 (filter (fn [(f Str)] -> Bool (!= f "-")) (.-owns t1)))]
-    (let [(common (filter (fn [(f Str)] -> Bool (list-contains? (.-owns t2) f)) files1))]
+  (let [(files1 (filter (fn [(f Str)] -> Bool (!= f "-")) (map (fn [(f Str)] -> Str (v/normalize-path f)) (.-owns t1))))
+        (files2 (filter (fn [(f Str)] -> Bool (!= f "-")) (map (fn [(f Str)] -> Str (v/normalize-path f)) (.-owns t2))))]
+    (let [(common (filter (fn [(f Str)] -> Bool (list-contains? files2 f)) files1))]
       (> (list-length common) 0))))
 
 (df task-overlap-files [(t1 TaskRecord) (t2 TaskRecord)] -> (List Str)
   :d "Returns the list of overlapping files between two tasks, ignoring dash placeholder."
-  (let [(files1 (filter (fn [(f Str)] -> Bool (!= f "-")) (.-owns t1)))]
-    (filter (fn [(f Str)] -> Bool (list-contains? (.-owns t2) f)) files1)))
+  (let [(files1 (filter (fn [(f Str)] -> Bool (!= f "-")) (map (fn [(f Str)] -> Str (v/normalize-path f)) (.-owns t1))))
+        (files2 (filter (fn [(f Str)] -> Bool (!= f "-")) (map (fn [(f Str)] -> Str (v/normalize-path f)) (.-owns t2))))]
+    (filter (fn [(f Str)] -> Bool (list-contains? files2 f)) files1)))
 
 (df task-dependencies-satisfied? [(task TaskRecord) (completed-ids (List Str))] -> Bool
   :d "Checks if all prerequisite tasks of a task have been completed."

@@ -5,7 +5,8 @@
       parse-checkpoint-asn
       create-vfs-checkpoint
       restore-vfs-checkpoint]
-  :i [(vfs :a v)])
+  :i [(vfs :a v)
+      (asl-text/escape :a esc)])
 
 (dfs VFSCheckpoint
   (:f id Str "Unique checkpoint identifier e.g. cp-phase-319-1725793200000")
@@ -15,19 +16,6 @@
   (:f cas-root Str "Deterministic content-addressed SHA256 hex digest over all buffer CAS hashes")
   (:f dirty-count I64 "Number of buffers in dirty state at time of checkpoint"))
 
-(df escape-asn-str [(s Str)] -> Str
-  :d "Escapes backslashes, double quotes, and newlines for ASN string literal."
-  (let [(s1 (string-replace s "\\" "\\\\"))
-        (s2 (string-replace s1 "\"" "\\\""))
-        (s3 (string-replace s2 "\n" "\\n"))]
-    s3))
-
-(df unescape-asn-str [(s Str)] -> Str
-  :d "Unescapes backslashes, double quotes, and newlines from ASN string literal."
-  (let [(s1 (string-replace s "\\n" "\n"))
-        (s2 (string-replace s1 "\\\"" "\""))
-        (s3 (string-replace s2 "\\\\" "\\"))]
-    s3))
 
 (df extract-between [(src Str) (prefix Str) (suffix Str)] -> (Option Str)
   :d "Extracts substring between prefix and suffix markers."
@@ -46,8 +34,8 @@
 (df format-buffer-asn [(buf v/VFSBuffer)] -> Str
   :d "Serializes a single VFSBuffer into ASN (:buf ...) representation."
   (let [(p (.-path buf))
-        (c (escape-asn-str (.-content buf)))
-        (bc (escape-asn-str (.-base-content buf)))
+        (c (esc/escape-asn-str (.-content buf)))
+        (bc (esc/escape-asn-str (.-base-content buf)))
         (ch (.-cas-hash buf))
         (bh (.-base-hash buf))
         (rev (string-from-int64 (.-revision buf)))
@@ -87,15 +75,15 @@
         (mt path-opt
           ((none) (none))
           ((some path-val)
-           (let [(content-val (unescape-asn-str (option-or c-opt "")))
-                 (base-c-val (unescape-asn-str (option-or bc-opt "")))
+           (let [(content-val (esc/unescape-asn-str (option-or c-opt "")))
+                 (base-c-val (esc/unescape-asn-str (option-or bc-opt "")))
                  (cas-h (option-or ch-opt ""))
                  (base-h (option-or bh-opt ""))
                  (rev-val (option-or (string-to-int64 (string-trim (option-or rev-opt "1"))) 1))
                  (is-dirty (= (string-trim (option-or dirty-opt "false")) "true"))
                  (loaded-val (option-or (string-to-int64 (string-trim (option-or loaded-opt "0"))) 0))]
              (some (v/VFSBuffer
-                     :path path-val
+                     :path (v/normalize-path path-val)
                      :content content-val
                      :base-content base-c-val
                      :cas-hash cas-h
@@ -174,11 +162,11 @@
        (let [(buffers (.-buffers ckpt))
              (init-map (map-empty))
              (reconstructed-map (fold (fn [(acc (Map Str v/VFSBuffer)) (b v/VFSBuffer)] -> (Map Str v/VFSBuffer)
-                                        (map-set acc (.-path b) b))
+                                        (map-set acc (v/normalize-path (.-path b)) b))
                                       init-map
                                       buffers))
              (paths (fold (fn [(acc (List Str)) (b v/VFSBuffer)] -> (List Str)
-                            (list-append acc (list (.-path b))))
+                            (list-append acc (list (v/normalize-path (.-path b)))))
                           (list)
                           buffers))
              (size (list-length buffers))]

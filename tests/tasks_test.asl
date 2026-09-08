@@ -55,6 +55,8 @@
                          (list "-")
                          (list) "gate5" "why5"))]
     (assert (t/task-owns-file? t1 "mem/src/telemetry.asl") "t1 owns telemetry.asl")
+    (assert (t/task-owns-file? t1 "./mem/src/telemetry.asl") "t1 owns ./mem/src/telemetry.asl via normalization")
+    (assert (t/task-owns-file? t1 "/mem/src/telemetry.asl") "t1 owns /mem/src/telemetry.asl via normalization")
     (assert (not (t/task-owns-file? t1 "harness/src/llm_client.asl")) "t1 does not own llm_client.asl")
     (assert (not (t/task-owns-intersect? t1 t2)) "t1 and t2 have disjoint file sets")
     (assert (t/task-owns-intersect? t1 t3) "t1 and t3 both own telemetry.asl")

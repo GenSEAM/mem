@@ -7,7 +7,7 @@
       update-staged-hash
       record-flush-success
       resolve-sync-action]
-  :i [])
+  :i [(vfs :a v)])
 
 (dfs VFSSyncState
   (:f path Str "Normalized virtual file path")
@@ -17,18 +17,9 @@
   (:f staged-revision I64 "Monotonic revision counter of staged buffer edits")
   (:f status Str "Synchronization lifecycle status: clean, staged, conflict, drifted, or synced"))
 
-(df normalize-sync-path [(path Str)] -> Str
-  :d "Normalizes virtual file path by trimming whitespace and stripping leading slash prefixes."
-  (let [(trimmed (string-trim path))]
-    (if (string-starts-with? trimmed "./")
-      (option-or (string-slice trimmed 2 (string-length trimmed)) "")
-      (if (string-starts-with? trimmed "/")
-        (option-or (string-slice trimmed 1 (string-length trimmed)) "")
-        trimmed))))
-
 (df make-sync-state [(path Str) (disk-base-hash Str) (disk-mtime I64)] -> VFSSyncState
   :d "Constructs an initial OCC synchronization state record for a virtual file path."
-  (let [(norm (normalize-sync-path path))]
+  (let [(norm (v/normalize-path path))]
     (VFSSyncState
       :path norm
       :disk-base-hash disk-base-hash

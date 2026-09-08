@@ -53,7 +53,7 @@
                                      (if (string-empty? (.-current-title st)) "Untitled" (.-current-title st))
                                      (if (string-empty? (.-current-why st)) "Rationale" (.-current-why st))
                                      (if (string-empty? (.-current-status st)) "active" (.-current-status st))))
-            (updated-rules (list-append (.-rules st) new-rule))]
+            (updated-rules (list-append (.-rules st) (list new-rule)))]
         (ParseState
           :current-code ""
           :current-title ""

@@ -156,7 +156,7 @@
     (assert (string-starts-with? d23 "d-0023") "d-0023 must begin with identifier prefix")
     (assert (string-contains? d23 "Grammar-Trie Constrained") "d-0023 must hydrate grammar-trie decoding decision")
     (assert (string-starts-with? d24 "d-0024") "d-0024 must begin with identifier prefix")
-    (assert (string-contains? d24 "Shrody TaskStore") "d-0024 must hydrate Shrody taskstore decision")
+    (assert (string-contains? d24 "Memory TaskStore") "d-0024 must hydrate Memory taskstore decision")
     (assert (string-starts-with? d25 "d-0025") "d-0025 must begin with identifier prefix")
     (assert (string-contains? d25 "Supervisor & Dual-Temperature") "d-0025 must hydrate supervisor speculative racing decision")
     (assert (string-starts-with? d26 "d-0026") "d-0026 must begin with identifier prefix")

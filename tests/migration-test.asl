@@ -5,7 +5,8 @@
       test-serialize-ledger-asn
       test-migration-token-savings
       test-empty-migration
-      run-migration-tests]
+      run-migration-tests
+      run-tests]
   :i [(migration :a mig) (records :a rec)])
 
 (df sample-yaml-constitution [] -> Str
@@ -29,8 +30,9 @@
 (df test-migrate-pcp-yaml [] -> Bool
   :d "Tests migration of multi-rule legacy YAML constitution into typed memory ledger"
   (let [(res (mig/migrate-pcp-constitution (sample-yaml-constitution)))]
-    (and (.-success res)
-         (= (.-total-rules res) 3))))
+    (assert (.-success res) "migration succeeds")
+    (assert (= (.-total-rules res) 3) "total rules is 3")
+    true))
 
 (df test-query-memory-shortcode [] -> Bool
   :d "Tests fast indexed lookup by shortcode"
@@ -40,10 +42,12 @@
         (ledger (rec/RecordsLedger :rules rules :shortcodes codes))
         (found (mig/query-memory-shortcode ledger "l-0001"))]
     (mt found
-      ((none) false)
+      ((none) (do (assert false "rule not found") false))
       ((some rule)
-       (and (= (.-code rule) "l-0001")
-            (= (.-title rule) "Pure AgentScript Invariant"))))))
+       (do
+         (assert (= (.-code rule) "l-0001") "code matches")
+         (assert (= (.-title rule) "Pure AgentScript Invariant") "title matches")
+         true)))))
 
 (df test-serialize-ledger-asn [] -> Bool
   :d "Tests serialization of memory ledger to native S-expression"
@@ -52,20 +56,23 @@
         (codes (map (fn [(r rec/AdrRule)] -> Str (.-code r)) rules))
         (ledger (rec/RecordsLedger :rules rules :shortcodes codes))
         (asn-str (mig/serialize-ledger-asn ledger))]
-    (and (string-contains? asn-str "(:asl-mem-ledger")
-         (and (string-contains? asn-str "(:rule :code \"l-0001\"")
-              (string-contains? asn-str "(:rule :code \"d-0042\"")))))
+    (assert (string-contains? asn-str "(:asl-mem-ledger") "contains ledger tag")
+    (assert (string-contains? asn-str "(:rule :code \"l-0001\"") "contains rule l-0001")
+    (assert (string-contains? asn-str "(:rule :code \"d-0042\"") "contains rule d-0042")
+    true))
 
 (df test-migration-token-savings [] -> Bool
   :d "Tests token compaction measurement"
   (let [(res (mig/migrate-pcp-constitution (sample-yaml-constitution)))]
-    (and (.-success res)
-         (> (.-raw-tokens res) 0))))
+    (assert (.-success res) "success true")
+    (assert (> (.-raw-tokens res) 0) "raw tokens > 0")
+    true))
 
 (df test-empty-migration [] -> Bool
   :d "Tests graceful fallback on empty YAML input"
   (let [(res (mig/migrate-pcp-constitution ""))]
-    (not (.-success res))))
+    (assert (not (.-success res)) "empty input fails")
+    true))
 
 (df run-migration-tests [] -> Bool
   :d "Runs all migration unit test cases"
@@ -74,3 +81,6 @@
             (and (test-serialize-ledger-asn)
                  (and (test-migration-token-savings)
                       (test-empty-migration))))))
+
+(df run-tests [] -> Bool
+  (run-migration-tests))

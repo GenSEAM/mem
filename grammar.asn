@@ -21,6 +21,7 @@
     (:sym :name "engine-stats" :kind :fn :tokens 2)
     (:sym :name "ShortcodeType" :kind :type :tokens 1)
     (:sym :name "Shortcode" :kind :type :tokens 1)
+    (:sym :name "SpoolMatch" :kind :type :tokens 1)
     (:sym :name "AdrRule" :kind :type :tokens 1)
     (:sym :name "RecordsLedger" :kind :type :tokens 1)
     (:sym :name "ScanResult" :kind :type :tokens 1)
@@ -257,8 +258,38 @@
           :rationale "Creates tombstone buffer record representing a deleted file staged for disk sync")
     (:sym :name "vfs-patch-buffer" :kind :fn :tokens 3
           :rationale "Constructs patched virtual buffer record staging symbol replacement in memory")
-    (:sym :name "vfs-check-syntax" :kind :fn :tokens 3
-          :rationale "Validates structural delimiter balance and string literal closure in buffer")
+    (:sym :name "vfs-check-delimiter-balance" :kind :fn :tokens 4
+          :rationale "Validates structural delimiter balance delegating to canonical asl-parser balance")
+    (:sym :name "DaemonProcSession" :kind :type :tokens 3
+          :rationale "In-memory interactive process session record tracking streaming spool buffers")
+    (:sym :name "make-daemon-proc-session" :kind :fn :tokens 4
+          :rationale "Constructs an active in-memory process session record with empty spool buffer")
+    (:sym :name "daemon-spawn-session" :kind :fn :tokens 3
+          :rationale "Spawns and registers a new interactive process session in daemon state")
+    (:sym :name "daemon-spawn-session-timeout" :kind :fn :tokens 4
+          :rationale "Spawns a new interactive process session with custom watchdog timeout ceiling")
+    (:sym :name "daemon-extend-session-timeout" :kind :fn :tokens 4
+          :rationale "Dynamically extends watchdog timeout ceiling on active session resetting idle timer")
+    (:sym :name "daemon-set-session-timeout" :kind :fn :tokens 4
+          :rationale "Explicitly updates watchdog timeout ceiling on active session resetting idle timer")
+    (:sym :name "daemon-session-check-timeout" :kind :fn :tokens 4
+          :rationale "Audits session idle duration against configured timeout setting deadlock flag if breached")
+    (:sym :name "daemon-find-session" :kind :fn :tokens 3
+          :rationale "Retrieves a process session by unique session identifier")
+    (:sym :name "daemon-append-session-stdout" :kind :fn :tokens 4
+          :rationale "Appends standard output line to session spool and resets idle timer")
+    (:sym :name "daemon-input-session" :kind :fn :tokens 3
+          :rationale "Records streaming input injected into active process session resetting idle timer")
+    (:sym :name "daemon-terminate-session" :kind :fn :tokens 3
+          :rationale "Marks an interactive process session as terminated with exit return code")
+    (:sym :name "daemon-active-sessions-count" :kind :fn :tokens 4
+          :rationale "Returns count of currently active interactive process sessions")
+    (:sym :name "daemon-session-skeleton" :kind :fn :tokens 3
+          :rationale "Extracts structural output skeleton and error coordinates from session spool in memory")
+    (:sym :name "daemon-session-read-slice" :kind :fn :tokens 4
+          :rationale "Extracts narrow line slice from process session spool without dumping whole buffer")
+    (:sym :name "daemon-session-find-bm25" :kind :fn :tokens 4
+          :rationale "Executes sub-millisecond in-memory Okapi BM25 ranked query over process session spool")
     (:sym :name "vfs-replace-all" :kind :fn :tokens 3
           :rationale "Pure literal string replacement immune to regex and special token corruption")
     (:sym :name "is-mutation-op?" :kind :fn :tokens 3
@@ -267,6 +298,7 @@
           :rationale "Asserts whether a file extension belongs to supported polyglot source formats")
     (:sym :name "clean-dead-socket-record" :kind :fn :tokens 4
           :rationale "Determines if dead socket and pid artifacts should be purged when daemon is inactive")
+    (:sym :name "is-path-safe?" :kind :fn :tokens 2)
     (:sym :name "make-batch-step" :kind :fn :tokens 3
           :rationale "Constructs an indexed batch step record for atomic execution in VFS")
     (:sym :name "make-batch-result" :kind :fn :tokens 3
@@ -523,6 +555,14 @@
           :rationale "Applies anti-bait utility score penalty to unreferenced search matches")
     (:sym :name "evict-below-threshold" :kind :fn :tokens 3
           :rationale "Filters out context items scoring strictly below eviction threshold")
+    (:sym :name "format-spool-matches" :kind :fn :tokens 3
+          :rationale "Formats ranked terminal spool matches into concise line summary")
+    (:sym :name "spool-index-lines" :kind :fn :tokens 3
+          :rationale "Builds in-memory BM25 inverted document index over terminal spool lines")
+    (:sym :name "spool-query-bm25" :kind :fn :tokens 3
+          :rationale "Directly queries raw terminal spool text using in-memory BM25 index")
+    (:sym :name "spool-search-index" :kind :fn :tokens 3
+          :rationale "Executes BM25 search query over pre-indexed terminal spool lines")
   ]
 )
 

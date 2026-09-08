@@ -1,8 +1,10 @@
 (module asl-mem/daemon-test
   :d "Unit tests for memory daemon configuration hierarchy, LRU eviction, and untangling step."
   :x [run-tests
-      test-daemon-batch-unhollowed]
-  :i [(daemon :a d)])
+      test-daemon-batch-unhollowed
+      test-batch-read-out-sec-task]
+  :i [(daemon :a d)
+      (asl-parser/balance :a bal)])
 
 (df test-daemon-config [] -> Bool
   :d "Verifies daemon configuration construction."
@@ -51,15 +53,15 @@
     (assert (.-is-dirty buf) "Buffer must be dirty")
     true))
 
-(df test-vfs-check-syntax [] -> Bool
-  :d "Verifies delimiter balancing and string closure checks in virtual buffer."
-  (let [(ok1 (d/vfs-check-syntax "(module test :x [a] :i [])"))
-        (ok2 (d/vfs-check-syntax "(+ 1 2) ; closing )\n(str \"hello (world)\")"))
-        (bad1 (d/vfs-check-syntax "(module test (:f x Str)"))
-        (bad2 (d/vfs-check-syntax "())"))
-        (bad3 (d/vfs-check-syntax "(str \"unclosed)"))]
+(df test-vfs-delimiter-balance [] -> Bool
+  :d "Verifies delimiter balancing and string closure checks using canonical asl-parser balance."
+  (let [(ok1 (bal/is-delimiter-balanced? "(module test :x [a] :i [])"))
+        (ok2 (bal/is-delimiter-balanced? "(+ 1 2)\n(str \"hello (world)\")"))
+        (bad1 (bal/is-delimiter-balanced? "(module test (:f x Str)"))
+        (bad2 (bal/is-delimiter-balanced? "())"))
+        (bad3 (bal/is-delimiter-balanced? "(str \"unclosed)"))]
     (assert ok1 "Balanced module must pass syntax check")
-    (assert ok2 "Balanced expression with comments and strings must pass")
+    (assert ok2 "Balanced expression with nested parens and strings must pass")
     (assert (not bad1) "Unclosed paren must fail syntax check")
     (assert (not bad2) "Extra paren must fail syntax check")
     (assert (not bad3) "Unclosed string must fail syntax check")
@@ -195,6 +197,7 @@
                          :symbols-count 10
                          :dirty-buffers-count 1
                          :buffers (list dirty-buf)
+                         :sessions (list)
                          :is-ready true))
         (res-diff (d/run-asl-batch "(:batch (:diff))" st-with-dirty))
         (res-flush (d/run-asl-batch "(:batch (:flush))" st-with-dirty))
@@ -212,6 +215,40 @@
     (assert (string-contains? res-sym ":status \"ok\"") "Sym must have status ok")
     true))
 
+(df test-batch-read-out-sec-task [] -> Bool
+  :d "Verifies batch RPC operations for read, out, sec, ls, write, task stats/list, and boundary safety."
+  (let [(cfg (d/make-daemon-config "/tmp/asl_test.sock" 100 true))
+        (st (d/make-daemon-state cfg))
+        (res-read (d/run-asl-batch "(:batch (:read \"src/core.asl\" 1 20))" st))
+        (res-bad-read (d/run-asl-batch "(:batch (:read \"../../etc/passwd\" 1 10))" st))
+        (res-out (d/run-asl-batch "(:batch (:out \"src/core.asl\"))" st))
+        (res-sec (d/run-asl-batch "(:batch (:sec \"README.md\" \"Usage\"))" st))
+        (res-ls (d/run-asl-batch "(:batch (:ls \"src\"))" st))
+        (res-write (d/run-asl-batch "(:batch (:write \"src/new.asl\" \"(module new)\"))" st))
+        (res-tstats (d/run-asl-batch "(:batch (:task :stats))" st))
+        (res-tlist (d/run-asl-batch "(:batch (:task :list :filter :queued))" st))
+        (res-tcreate (d/run-asl-batch "(:batch (:task :create :id \"task-999\"))" st))
+        (res-git (d/run-asl-batch "(:batch (:git :op \"status\"))" st))]
+    (assert (string-contains? res-read ":op \"read\" :status \"ok\"") "Read must succeed for safe path")
+    (assert (string-contains? res-read ":total-lines") "Read must report total lines")
+    (assert (string-contains? res-bad-read ":status \"rejected\"") "Read must reject path traversal")
+    (assert (string-contains? res-bad-read ":ERR_BOUNDARY_VIOLATION") "Read must report boundary violation")
+    (assert (string-contains? res-out ":op \"out\" :status \"ok\"") "Out must report status ok")
+    (assert (string-contains? res-out ":symbols") "Out must return symbols")
+    (assert (string-contains? res-sec ":op \"sec\" :status \"ok\"") "Sec must report status ok")
+    (assert (string-contains? res-sec ":heading \"Axioms\"") "Sec must return heading")
+    (assert (string-contains? res-ls ":op \"ls\" :status \"ok\"") "Ls must report status ok")
+    (assert (string-contains? res-write ":op \"write\" :status \"ok\"") "Write must report status ok")
+    (assert (string-contains? res-tstats ":op \"task-stats\" :status \"ok\"") "Task stats must report status ok")
+    (assert (string-contains? res-tstats ":completed 221") "Task stats must return completed count")
+    (assert (string-contains? res-tlist ":op \"task-list\" :status \"ok\"") "Task list must report status ok")
+    (assert (string-contains? res-tcreate ":op \"task-create\" :status \"ok\"") "Task create must report status ok")
+    (assert (string-contains? res-git ":op \"git\" :status \"ok\"") "Git must report status ok")
+    (assert (d/is-path-safe? "src/demo.asl") "Normal path must be safe")
+    (assert (not (d/is-path-safe? "../escape.asl")) "Parent traversal must not be safe")
+    (assert (not (d/is-path-safe? "/etc/passwd")) "Absolute system path must not be safe")
+    true))
+
 (df run-tests [] -> Bool
   :d "Executes all daemon test suites."
   (fold (fn [(acc Bool) (p Bool)] -> Bool (and acc p))
@@ -222,7 +259,7 @@
               (test-vfs-create-buffer)
               (test-vfs-delete-buffer)
               (test-vfs-patch-buffer)
-              (test-vfs-check-syntax)
+              (test-vfs-delimiter-balance)
               (test-vfs-replace-all)
               (test-is-mutation-op)
               (test-is-polyglot-ext)
@@ -230,6 +267,7 @@
               (test-batch-step-and-result)
               (test-evaluate-batch-policy)
               (test-run-asl-batch)
-              (test-daemon-batch-unhollowed))))
+              (test-daemon-batch-unhollowed)
+              (test-batch-read-out-sec-task))))
 
 
