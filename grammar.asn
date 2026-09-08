@@ -396,7 +396,28 @@
           :rationale "Extracts verified core axioms from raw intent ledger text into summary")
     (:sym :name "test-hydrate-intent-summary" :kind :fn :tokens 4
           :rationale "Unit test verifying intent summary hydration")
+  
+    ;; Task Management & Scheduling Symbols (asl-mem/tasks)
+    (:sym :name "TaskRecord" :kind :type :tokens 1)
+    (:sym :name "make-task" :kind :fn :tokens 2)
+    (:sym :name "task-owns-file?" :kind :fn :tokens 3
+          :rationale "Checks if a task declared ownership over a specific file path")
+    (:sym :name "task-owns-intersect?" :kind :fn :tokens 3
+          :rationale "Checks if two tasks declare overlapping file ownership")
+    (:sym :name "task-overlap-files" :kind :fn :tokens 3
+          :rationale "Returns the list of overlapping files between two tasks")
+    (:sym :name "task-dependencies-satisfied?" :kind :fn :tokens 3
+          :rationale "Checks if all prerequisite tasks of a task have been completed")
+    (:sym :name "task-parallel-eligible?" :kind :fn :tokens 3
+          :rationale "Determines if two tasks can be safely executed in parallel")
+    (:sym :name "task-is-ready?" :kind :fn :tokens 3
+          :rationale "Checks if a task is queued or ready and has prerequisites satisfied")
+    (:sym :name "task-find-ready" :kind :fn :tokens 3
+          :rationale "Filters tasks that are eligible for immediate execution")
+    (:sym :name "task-claim" :kind :fn :tokens 2)
+    (:sym :name "task-start" :kind :fn :tokens 2)
+    (:sym :name "task-complete" :kind :fn :tokens 2)
+    (:sym :name "task-format-asn" :kind :fn :tokens 3
+          :rationale "Formats task into canonical ASN representation")
   ]
 )
-
-

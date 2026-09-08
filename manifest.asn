@@ -3,5 +3,5 @@
  :entry "src/engine.asl"
  :description "High-performance vector memory store and tiered context engine"
  :asl-first true
- :modules ["asl-mem/engine" "asl-mem/daemon" "asl-mem/roadmap" "asl-mem/projector"]
+ :modules ["asl-mem/engine" "asl-mem/daemon" "asl-mem/roadmap" "asl-mem/projector" "asl-mem/tasks"]
  :dependencies [])
