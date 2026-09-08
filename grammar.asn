@@ -343,6 +343,25 @@
           :rationale "Generates synchronized STATUS and PLAN markdown projections from memory")
     (:sym :name "vfs-cas-update" :kind :fn :tokens 3
           :rationale "Atomic compare and swap buffer update rejecting stale base versions")
+    (:sym :name "Chunk" :kind :type :tokens 1)
+    (:sym :name "MemoryChunk" :kind :type :tokens 1)
+    (:sym :name "ChunkDAG" :kind :type :tokens 1)
+    (:sym :name "make-memory-chunk" :kind :fn :tokens 3
+          :rationale "Constructs a MemoryChunk record with millisecond timestamp confidence and DAG reference links")
+    (:sym :name "validate-memory-chunk" :kind :fn :tokens 3
+          :rationale "Validates memory chunk structural boundaries timestamp positivity and confidence range")
+    (:sym :name "is-low-confidence?" :kind :fn :tokens 3
+          :rationale "Predicate asserting whether chunk confidence falls below safety verification threshold")
+    (:sym :name "chunk-dag-empty" :kind :fn :tokens 3
+          :rationale "Constructs an empty memory chunk directed acyclic graph")
+    (:sym :name "chunk-dag-add" :kind :fn :tokens 3
+          :rationale "Inserts MemoryChunk into DAG while enforcing reference existence and acyclicity")
+    (:sym :name "chunk-dag-find" :kind :fn :tokens 3
+          :rationale "Retrieves an indexed memory chunk from DAG by its unique identifier")
+    (:sym :name "chunk-dag-ancestors" :kind :fn :tokens 3
+          :rationale "Traverses DAG topology to return all transitive ancestor chunk IDs in causal order")
+    (:sym :name "detect-cycle?" :kind :fn :tokens 2)
+    (:sym :name "now-ms" :kind :fn :tokens 2)
   ]
 )
 
