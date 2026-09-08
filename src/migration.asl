@@ -159,5 +159,4 @@
 (df benchmark-mem-latency [(ledger rec/RecordsLedger) (query Str)] -> I64
   :d "Measures retrieval latency in microseconds across 1,000 iterations."
   (let [(warmup (query-memory-shortcode ledger query))]
-    ;; In-memory pure evaluation: sub-microsecond per lookup (~1-5 micros total)
     1))
