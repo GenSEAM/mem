@@ -444,6 +444,21 @@
           :rationale "Calculates total active token footprint across perceptual pointer set")
     (:sym :name "is-context-minimal?" :kind :fn :tokens 3
           :rationale "Verifies active pointer context footprint remains strictly below minimal threshold")
+
+    ;; Phase 331 AST Equivalence E-Graphs (asl-mem/egraph)
+    (:sym :name "ENode" :kind :type :tokens 1)
+    (:sym :name "EClass" :kind :type :tokens 1)
+    (:sym :name "EGraph" :kind :type :tokens 1)
+    (:sym :name "egraph-new" :kind :fn :tokens 2)
+    (:sym :name "egraph-find" :kind :fn :tokens 2)
+    (:sym :name "egraph-add-node" :kind :fn :tokens 3
+          :rationale "Canonicalizes node children, checks memo hash-consing table, adds EClass and updates memo")
+    (:sym :name "add-enode" :kind :fn :tokens 2)
+    (:sym :name "egraph-union" :kind :fn :tokens 2)
+    (:sym :name "merge-eclasses" :kind :fn :tokens 2)
+    (:sym :name "egraph-rebuild" :kind :fn :tokens 2)
+    (:sym :name "egraph-extract" :kind :fn :tokens 2)
+    (:sym :name "egraph-saturate" :kind :fn :tokens 2)
   ]
 )
 
