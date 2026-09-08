@@ -362,6 +362,14 @@
           :rationale "Traverses DAG topology to return all transitive ancestor chunk IDs in causal order")
     (:sym :name "detect-cycle?" :kind :fn :tokens 2)
     (:sym :name "now-ms" :kind :fn :tokens 2)
+    (:sym :name "VFSBuffer" :kind :type :tokens 1)
+    (:sym :name "VFSRegistry" :kind :type :tokens 1)
+    (:sym :name "vfs-init" :kind :fn :tokens 2)
+    (:sym :name "vfs-read" :kind :fn :tokens 2)
+    (:sym :name "vfs-write" :kind :fn :tokens 2)
+    (:sym :name "vfs-cas-hash" :kind :fn :tokens 3
+          :rationale "Computes deterministic content-addressed SHA256 hex hash of buffer text payload")
+    (:sym :name "vfs-diff" :kind :fn :tokens 2)
   ]
 )
 
