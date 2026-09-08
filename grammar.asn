@@ -459,6 +459,19 @@
     (:sym :name "egraph-rebuild" :kind :fn :tokens 2)
     (:sym :name "egraph-extract" :kind :fn :tokens 2)
     (:sym :name "egraph-saturate" :kind :fn :tokens 2)
+
+    ;; Phase 332 Zero-Copy AST Regex Scanner Symbols (asl-mem/token-regex)
+    (:sym :name "TokenPattern" :kind :type :tokens 1)
+    (:sym :name "TokenMatchResult" :kind :type :tokens 1)
+    (:sym :name "TokenMatcher" :kind :type :tokens 1)
+    (:sym :name "compile-token-pattern" :kind :fn :tokens 3
+          :rationale "Compiles token pattern string into TokenMatcher record representation")
+    (:sym :name "match-token-stream" :kind :fn :tokens 3
+          :rationale "Matches token sequence starting at index against TokenMatcher returning match result")
+    (:sym :name "scan-token-stream" :kind :fn :tokens 3
+          :rationale "Scans entire token stream returning all non-overlapping token match results")
+    (:sym :name "find-token-subsequences" :kind :fn :tokens 3
+          :rationale "Finds start and end index pairs of matching token subsequences in stream")
   ]
 )
 
