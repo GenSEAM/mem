@@ -7,7 +7,8 @@
       test-raw-context-eviction
       test-markdown-hydration-and-card
       test-summary-search-and-autoloading
-      test-hydrate-intent-summary]
+      test-hydrate-intent-summary
+      test-modern-intent-ledger-hydration]
   :i [(amnesia :a a)
       (hydration :a h)
       (view_layer :a vl)
@@ -129,12 +130,59 @@
     (assert (= syn-fail "Axioms: Ungrounded") "Synthesized summary must flag ungrounded on unmatched input")
     true))
 
+(df test-modern-intent-ledger-hydration [] -> Bool
+  :d "Verifies deterministic hydration of modern phase decisions d-0019 through d-0029 and liquidation of legacy PCP hashes."
+  (let [(d19 (h/hydrate-modern-intent "d-0019"))
+        (d20 (h/hydrate-modern-intent "d-0020"))
+        (d21 (h/hydrate-modern-intent "d-0021"))
+        (d22 (h/hydrate-modern-intent "d-0022"))
+        (d23 (h/hydrate-modern-intent "d-0023"))
+        (d24 (h/hydrate-modern-intent "d-0024"))
+        (d25 (h/hydrate-modern-intent "d-0025"))
+        (d26 (h/hydrate-modern-intent "d-0026"))
+        (d27 (h/hydrate-modern-intent "d-0027"))
+        (d28 (h/hydrate-modern-intent "d-0028"))
+        (d29 (h/hydrate-modern-intent "d-0029"))
+        (all-decisions (h/default-modern-decisions))]
+    (assert (= (list-length all-decisions) 11) "Default modern decisions must contain exactly 11 entries")
+    (assert (string-starts-with? d19 "d-0019") "d-0019 must begin with identifier prefix")
+    (assert (string-contains? d19 "Differential Test Runner") "d-0019 must hydrate differential test runner decision")
+    (assert (string-starts-with? d20 "d-0020") "d-0020 must begin with identifier prefix")
+    (assert (string-contains? d20 "Token Regex Engine") "d-0020 must hydrate token regex engine decision")
+    (assert (string-starts-with? d21 "d-0021") "d-0021 must begin with identifier prefix")
+    (assert (string-contains? d21 "Equivalence E-Graphs") "d-0021 must hydrate AST equivalence e-graphs decision")
+    (assert (string-starts-with? d22 "d-0022") "d-0022 must begin with identifier prefix")
+    (assert (string-contains? d22 "Speculative VFS Branching") "d-0022 must hydrate speculative VFS branching decision")
+    (assert (string-starts-with? d23 "d-0023") "d-0023 must begin with identifier prefix")
+    (assert (string-contains? d23 "Grammar-Trie Constrained") "d-0023 must hydrate grammar-trie decoding decision")
+    (assert (string-starts-with? d24 "d-0024") "d-0024 must begin with identifier prefix")
+    (assert (string-contains? d24 "Shrody TaskStore") "d-0024 must hydrate Shrody taskstore decision")
+    (assert (string-starts-with? d25 "d-0025") "d-0025 must begin with identifier prefix")
+    (assert (string-contains? d25 "Supervisor & Dual-Temperature") "d-0025 must hydrate supervisor speculative racing decision")
+    (assert (string-starts-with? d26 "d-0026") "d-0026 must begin with identifier prefix")
+    (assert (string-contains? d26 "WASI Lowering") "d-0026 must hydrate pure ASL WASI lowering decision")
+    (assert (string-starts-with? d27 "d-0027") "d-0027 must begin with identifier prefix")
+    (assert (string-contains? d27 "Dense Tabular Pyramid") "d-0027 must hydrate compact tabular pyramid decision")
+    (assert (string-starts-with? d28 "d-0028") "d-0028 must begin with identifier prefix")
+    (assert (string-contains? d28 "Cross-Reference URIs") "d-0028 must hydrate universal cross-reference URIs decision")
+    (assert (string-starts-with? d29 "d-0029") "d-0029 must begin with identifier prefix")
+    (assert (string-contains? d29 "Decoupled Amnesia") "d-0029 must hydrate decoupled amnesia decision")
+    (assert (= (h/hydrate-modern-intent "c-055e") "") "Liquidated legacy hash c-055e must return empty string")
+    (assert (= (h/hydrate-modern-intent "d-043b") "") "Liquidated legacy hash d-043b must return empty string")
+    (assert (= (h/hydrate-modern-intent "l-298e") "") "Liquidated legacy hash l-298e must return empty string")
+    (assert (= (h/hydrate-modern-intent "r-ea8c") "") "Liquidated legacy hash r-ea8c must return empty string")
+    (assert (= (h/hydrate-modern-intent "unknown-hash") "") "Unknown hash must return empty string without failure")
+    (assert (not (string-empty? d19)) "Hydrated d-0019 must not be empty")
+    (assert (not (string-empty? d29)) "Hydrated d-0029 must not be empty")
+    true))
+
 (df run-tests [] -> Bool
-  :d "Executes comprehensive hydration unit test suite with 40 strict assertions."
+  :d "Executes comprehensive hydration unit test suite with 70 strict assertions."
   (and (test-compression-threshold)
        (and (test-cascade-compression)
             (and (test-cascade-compression-empty-buffer)
                  (and (test-raw-context-eviction)
                       (and (test-markdown-hydration-and-card)
                            (and (test-summary-search-and-autoloading)
-                                (test-hydrate-intent-summary))))))))
+                                (and (test-hydrate-intent-summary)
+                                     (test-modern-intent-ledger-hydration)))))))))

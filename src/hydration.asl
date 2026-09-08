@@ -9,7 +9,9 @@
       evict-raw-context
       default-core-axioms
       hydrate-intent-summary
-      synthesize-intent-summary]
+      synthesize-intent-summary
+      default-modern-decisions
+      hydrate-modern-intent]
   :i [])
 
 (dfs MemoryChunk
@@ -133,3 +135,34 @@
           (string-contains? raw-ledger "Token Arbitrage"))
       (hydrate-intent-summary (default-core-axioms))
       "Axioms: Ungrounded"))
+
+(df default-modern-decisions [] -> (List Str)
+  :d "Returns canonical identifiers and descriptions of modern architectural decisions d-0019 through d-0029."
+  (list "d-0019: Pure ASL Differential Test Runner & Falsifiable Gate Invariant"
+        "d-0020: Zero-Copy Token Regex Engine & CAS Mutators"
+        "d-0021: In-Memory AST Equivalence E-Graphs & Congruence Closure"
+        "d-0022: In-Memory Speculative VFS Branching & Pruning"
+        "d-0023: Grammar-Trie Constrained Decoding Engine"
+        "d-0024: Shrody TaskStore State Machine & Priority Scheduler"
+        "d-0025: Multi-Agent Supervisor & Dual-Temperature Speculative Racing"
+        "d-0026: Pure ASL WASI Lowering & Node Annihilation"
+        "d-0027: Dense Tabular Pyramid & Sparkline Compaction"
+        "d-0028: Universal Cross-Reference URIs & AST Dependency Graph"
+        "d-0029: Decoupled Amnesia Runtime Context Eviction & Retention Audit"))
+
+(df hydrate-modern-intent [(id Str)] -> Str
+  :d "Retrieves hydrated summary of a modern architectural decision by ID or empty string if legacy or absent."
+  (cond
+    ((= id "d-0019") "d-0019: Pure ASL Differential Test Runner & Falsifiable Gate Invariant")
+    ((= id "d-0020") "d-0020: Zero-Copy Token Regex Engine & CAS Mutators")
+    ((= id "d-0021") "d-0021: In-Memory AST Equivalence E-Graphs & Congruence Closure")
+    ((= id "d-0022") "d-0022: In-Memory Speculative VFS Branching & Pruning")
+    ((= id "d-0023") "d-0023: Grammar-Trie Constrained Decoding Engine")
+    ((= id "d-0024") "d-0024: Shrody TaskStore State Machine & Priority Scheduler")
+    ((= id "d-0025") "d-0025: Multi-Agent Supervisor & Dual-Temperature Speculative Racing")
+    ((= id "d-0026") "d-0026: Pure ASL WASI Lowering & Node Annihilation")
+    ((= id "d-0027") "d-0027: Dense Tabular Pyramid & Sparkline Compaction")
+    ((= id "d-0028") "d-0028: Universal Cross-Reference URIs & AST Dependency Graph")
+    ((= id "d-0029") "d-0029: Decoupled Amnesia Runtime Context Eviction & Retention Audit")
+    (:else "")))
+
