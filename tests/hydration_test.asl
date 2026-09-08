@@ -1,0 +1,121 @@
+(module asl-mem/tests/hydration-test
+  :d "Comprehensive unit test suite for managed amnesia cascade compression, markdown hydration view, and summary search."
+  :x [run-tests
+      test-compression-threshold
+      test-cascade-compression
+      test-cascade-compression-empty-buffer
+      test-raw-context-eviction
+      test-markdown-hydration-and-card
+      test-summary-search-and-autoloading]
+  :i [(amnesia :a a)
+      (hydration :a h)
+      (view_layer :a vl)
+      (summary_search :a ss)])
+
+(df test-compression-threshold [] -> Bool
+  :d "Verifies threshold watcher behavior across below-threshold exact-boundary above-threshold and zero."
+  (assert (not (h/check-compression-threshold 1500 3000)) "1500 tokens must not trigger 3000 token threshold")
+  (assert (h/check-compression-threshold 3000 3000) "3000 tokens must trigger exact 3000 token threshold")
+  (assert (h/check-compression-threshold 4500 3000) "4500 tokens must trigger 3000 token threshold")
+  (assert (not (h/check-compression-threshold 0 3000)) "0 tokens must not trigger 3000 token threshold")
+  true)
+
+(df test-cascade-compression [] -> Bool
+  :d "Verifies cascade compression folds messages into MemoryChunk and resets working RAM."
+  (let [(buf (h/make-context-buffer
+               "buf-001"
+               3500
+               (list "fact-1: agent initialized"
+                     "directive-1: enforce acyclicity"
+                     "fact-2: DAG enabled"
+                     "Backlog fold snapshot")
+               (list)))
+        (res (h/cascade-compress buf 3000 (list "parent-root") 1725769200000))
+        (chunk (.-first res))
+        (new-buf (.-second res))]
+    (assert (a/validate-memory-chunk chunk) "Compressed chunk must satisfy structural validation")
+    (assert (> (string-length (.-id chunk)) 0) "Generated chunk ID must be non-empty")
+    (assert (> (.-ts chunk) 0) "Generated chunk timestamp must be positive epoch millisecond")
+    (assert (= (.-conf chunk) 0.95) "Default confidence score must equal 0.95")
+    (assert (= (list-length (.-facts chunk)) 2) "Chunk must contain exactly 2 scalar facts")
+    (assert (= (list-length (.-directives chunk)) 1) "Chunk must contain exactly 1 directive")
+    (assert (list-contains? (.-refs chunk) "parent-root") "Causal parent references must be linked")
+    (assert (and (= (.-active-tokens new-buf) 0) (list-empty? (.-messages new-buf))) "Context buffer messages must be evicted and active tokens reset to 0")
+    true))
+
+(df test-cascade-compression-empty-buffer [] -> Bool
+  :d "Verifies cascade compression edge case with zero active messages."
+  (let [(buf (h/make-context-buffer "buf-empty" 0 (list) (list)))
+        (res (h/cascade-compress buf 3000 (list) 1725769200000))
+        (chunk (.-first res))
+        (new-buf (.-second res))]
+    (assert (a/validate-memory-chunk chunk) "Empty buffer compression must produce valid chunk")
+    (assert (and (list-empty? (.-facts chunk)) (list-empty? (.-directives chunk))) "Empty buffer chunk must have empty facts and empty directives")
+    (assert (= (.-active-tokens new-buf) 0) "Returned context buffer must remain at 0 tokens")
+    true))
+
+(df test-raw-context-eviction [] -> Bool
+  :d "Verifies operational working RAM wipe while preserving compressed chunk stubs."
+  (let [(c1 (a/make-memory-chunk "c-pre-1" 1000 0.90 "pre-existing" (list) (list) (list)))
+        (buf (h/make-context-buffer
+               "buf-evict"
+               2400
+               (list "raw msg 1" "raw msg 2")
+               (list c1)))
+        (evicted (h/evict-raw-context buf))]
+    (assert (list-empty? (.-messages evicted)) "Evicted buffer must have zero raw operational messages")
+    (assert (= (.-active-tokens evicted) 0) "Evicted buffer must have 0 active tokens")
+    (assert (= (list-length (.-chunks evicted)) 1) "Evicted buffer must retain pre-existing compressed chunk stubs")
+    (assert (= (.-id (option-or (list-head (.-chunks evicted)) c1)) "c-pre-1") "Pre-existing chunk ID must match retained stub")
+    true))
+
+(df test-markdown-hydration-and-card [] -> Bool
+  :d "Verifies on-demand Markdown projection and compact summary card formatting."
+  (let [(c (a/make-memory-chunk
+             "chunk-md-1"
+             1725769200123
+             0.95
+             "User requested memory persistence"
+             (list "agent initialized" "DAG enabled")
+             (list "enforce acyclicity")
+             (list "parent-000")))
+        (md (vl/hydrate-to-markdown c))
+        (c-empty (a/make-memory-chunk "chunk-empty" 1000 0.90 "empty" (list) (list) (list)))
+        (md-empty (vl/hydrate-to-markdown c-empty))
+        (card (vl/render-summary-card c))]
+    (assert (string-contains? md "# Memory Chunk: chunk-md-1") "Markdown output must contain title header with chunk ID")
+    (assert (and (string-contains? md "**Timestamp**: 1725769200123") (string-contains? md "**Confidence**: 0.95")) "Markdown output must contain formatted timestamp and confidence")
+    (assert (string-contains? md "| Index | Fact |") "Markdown output must contain facts table syntax")
+    (assert (string-contains? md "> [!IMPORTANT]") "Markdown output must contain GitHub alert box for directives")
+    (assert (string-contains? md "### Causal References") "Markdown output must contain causal references section")
+    (assert (and (string-contains? md-empty "*No scalar facts recorded.*") (string-contains? md-empty "*No operational directives.*")) "Empty chunk must display valid markdown placeholder text")
+    (assert (and (string-contains? card "[Chunk: chunk-md-1]") (and (string-contains? card "0.95") (string-contains? card "1725769200123 ms"))) "Summary card must format compact ID confidence and millisecond timestamp")
+    true))
+
+(df test-summary-search-and-autoloading [] -> Bool
+  :d "Verifies keyword indexing and dual-format summary search retrieval."
+  (let [(idx0 (ss/summary-index-empty))
+        (c1 (a/make-memory-chunk "c-s-1" 1000 0.95 "Memory persistence and cascade amnesia" (list) (list) (list)))
+        (c2 (a/make-memory-chunk "c-s-2" 2000 0.90 "Human hydration view layer projection" (list) (list) (list)))
+        (idx1 (ss/index-chunk-summary idx0 c1))
+        (idx2 (ss/index-chunk-summary idx1 c2))]
+    (assert (= (.-size idx0) 0) "Empty summary index must have size 0")
+    (assert (= (.-size idx2) 2) "Summary index after two insertions must have size 2")
+    (let [(res-csexpr (ss/search-chunks-by-summary idx2 "persistence" "cs-expr"))]
+      (assert (and (= (list-length res-csexpr) 1) (= (option-or (list-head res-csexpr) "") "c-s-1")) "Keyword query with cs-expr format must return matching chunk ID"))
+    (let [(res-md (ss/search-chunks-by-summary idx2 "hydration" "markdown"))]
+      (assert (and (= (list-length res-md) 1) (string-contains? (option-or (list-head res-md) "") "[Chunk: c-s-2]")) "Keyword query with markdown format must return rendered summary card"))
+    (let [(res-none (ss/search-chunks-by-summary idx2 "nonexistent-term" "cs-expr"))]
+      (assert (list-empty? res-none) "Search with non-existent keyword must return empty list"))
+    (let [(res-empty-idx (ss/search-chunks-by-summary idx0 "persistence" "cs-expr"))]
+      (assert (list-empty? res-empty-idx) "Search on empty index must return empty list"))
+    true))
+
+(df run-tests [] -> Bool
+  :d "Executes comprehensive hydration unit test suite with 32 strict assertions."
+  (and (test-compression-threshold)
+       (and (test-cascade-compression)
+            (and (test-cascade-compression-empty-buffer)
+                 (and (test-raw-context-eviction)
+                      (and (test-markdown-hydration-and-card)
+                           (test-summary-search-and-autoloading)))))))
