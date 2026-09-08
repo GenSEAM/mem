@@ -370,6 +370,14 @@
     (:sym :name "vfs-cas-hash" :kind :fn :tokens 3
           :rationale "Computes deterministic content-addressed SHA256 hex hash of buffer text payload")
     (:sym :name "vfs-diff" :kind :fn :tokens 2)
+    (:sym :name "VFSBranch" :kind :type :tokens 1)
+    (:sym :name "fork-vfs-branch" :kind :fn :tokens 3
+          :rationale "Forks an isolated speculative VFS branch overlay from a base registry")
+    (:sym :name "write-branch-buffer" :kind :fn :tokens 3
+          :rationale "Stages content mutations into a speculative branch buffer overlay without mutating root registry")
+    (:sym :name "commit-branch!" :kind :fn :tokens 2)
+    (:sym :name "abort-branch" :kind :fn :tokens 2)
+    (:sym :name "branch-diff" :kind :fn :tokens 2)
     (:sym :name "TelemetryRecord" :kind :type :tokens 2)
     (:sym :name "VFSCheckpoint" :kind :type :tokens 2)
     (:sym :name "format-telemetry-entry" :kind :fn :tokens 3
