@@ -5,7 +5,9 @@
       make-blob-pointer
       format-pointer-token
       extract-scalar-fact
-      format-perceptual-fact]
+      format-perceptual-fact
+      format-pointer-descriptor
+      should-offload?]
   :i [])
 
 (dfs BlobPointer
@@ -52,3 +54,16 @@
        "\" :val \"" (.-val fact)
        "\" :confidence " (string-from-float64 (.-confidence fact))
        " :source-id \"" (.-source-id fact) "\")"))
+
+(df format-pointer-descriptor [(id Str) (action Str) (bytes I64) (tokens-saved I64) (summary Str)] -> Str
+  :d "Formats an offload or dereference descriptor for prompt context management."
+  (str "(:ptr :id \"" id
+       "\" :action \"" action
+       "\" :bytes " (string-from-int64 bytes)
+       " :tokens-saved " (string-from-int64 tokens-saved)
+       " :summary \"" summary "\")"))
+
+(df should-offload? [(bytes I64)] -> Bool
+  :d "Determines if a payload exceeds the 500 byte offload threshold."
+  (> bytes 500))
+

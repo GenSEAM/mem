@@ -206,6 +206,9 @@
           :rationale "Unit test for scalar fact extraction")
     (:sym :name "test-pointer-token-savings" :kind :fn :tokens 4
           :rationale "Unit test asserting token savings calculation")
+    (:sym :name "format-pointer-descriptor" :kind :fn :tokens 3
+          :rationale "Formats compact perceptual pointer descriptor for offloading")
+    (:sym :name "should-offload?" :kind :fn :tokens 2)
 
     ;; Phase 23 PCP-to-ASL-MEM Migration Symbols
     (:sym :name "PcpMigrationResult" :kind :type :tokens 1)
