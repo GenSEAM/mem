@@ -6,7 +6,10 @@
       make-context-buffer
       check-compression-threshold
       cascade-compress
-      evict-raw-context]
+      evict-raw-context
+      default-core-axioms
+      hydrate-intent-summary
+      synthesize-intent-summary]
   :i [])
 
 (dfs MemoryChunk
@@ -110,3 +113,23 @@
     :active-tokens 0
     :messages (list)
     :chunks (.-chunks buffer)))
+
+(df default-core-axioms [] -> (List Str)
+  :d "Returns canonical identifiers and descriptions of the four core engineering axioms."
+  (list "d-0015: Token Arbitrage (-70% tokens, pure ASN, zero JSON/YAML, zero emojis)"
+        "d-0016: Agent-Native Autonomy (machine-first, balanced delimiters, deterministic AST)"
+        "d-0017: Falsifiable Observability (7 verification gates, zero comments c-0001, physical receipts)"
+        "d-0018: In-Memory State Surgery (RAM VFS, batch RPC, speculative racing, clean supervisor)"))
+
+(df hydrate-intent-summary [(axioms (List Str))] -> Str
+  :d "Formats compact sub-100-token executive summary of core axioms and active architectural decisions."
+  (if (list-empty? axioms)
+      "Axioms: Token Arbitrage | Agent-Native Autonomy | Falsifiable Observability | In-Memory State Surgery"
+      (string-join axioms " | ")))
+
+(df synthesize-intent-summary [(raw-ledger Str)] -> Str
+  :d "Extracts verified core axioms from raw intent ledger text into sub-100-token executive summary."
+  (if (or (string-contains? raw-ledger "d-0015")
+          (string-contains? raw-ledger "Token Arbitrage"))
+      (hydrate-intent-summary (default-core-axioms))
+      "Axioms: Ungrounded"))

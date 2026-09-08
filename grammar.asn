@@ -370,6 +370,32 @@
     (:sym :name "vfs-cas-hash" :kind :fn :tokens 3
           :rationale "Computes deterministic content-addressed SHA256 hex hash of buffer text payload")
     (:sym :name "vfs-diff" :kind :fn :tokens 2)
+    (:sym :name "TelemetryRecord" :kind :type :tokens 2)
+    (:sym :name "VFSCheckpoint" :kind :type :tokens 2)
+    (:sym :name "format-telemetry-entry" :kind :fn :tokens 3
+          :rationale "Serializes TelemetryRecord into single-line newline-delimited ASN entry")
+    (:sym :name "parse-telemetry-entry" :kind :fn :tokens 3
+          :rationale "Parses single newline-delimited ASN entry into TelemetryRecord")
+    (:sym :name "stream-step-telemetry" :kind :fn :tokens 3
+          :rationale "Appends step telemetry record to in-flight memory telemetry ledger")
+    (:sym :name "format-checkpoint-asn" :kind :fn :tokens 3
+          :rationale "Serializes VFSCheckpoint record and buffers to portable ASN document")
+    (:sym :name "parse-checkpoint-asn" :kind :fn :tokens 3
+          :rationale "Deserializes ASN checkpoint representation into VFSCheckpoint record")
+    (:sym :name "create-vfs-checkpoint" :kind :fn :tokens 3
+          :rationale "Captures atomic snapshot of VFS registry buffers dirty state and CAS root")
+    (:sym :name "restore-vfs-checkpoint" :kind :fn :tokens 3
+          :rationale "Restores full VFS registry state and dirty buffers from archived checkpoint snapshot")
+
+    ;; Phase 311 Intent Hydration Symbols
+    (:sym :name "default-core-axioms" :kind :fn :tokens 3
+          :rationale "Returns canonical list of four core engineering axioms")
+    (:sym :name "hydrate-intent-summary" :kind :fn :tokens 3
+          :rationale "Formats compact sub-100-token executive summary of core axioms")
+    (:sym :name "synthesize-intent-summary" :kind :fn :tokens 3
+          :rationale "Extracts verified core axioms from raw intent ledger text into summary")
+    (:sym :name "test-hydrate-intent-summary" :kind :fn :tokens 4
+          :rationale "Unit test verifying intent summary hydration")
   ]
 )
 

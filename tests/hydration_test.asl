@@ -6,7 +6,8 @@
       test-cascade-compression-empty-buffer
       test-raw-context-eviction
       test-markdown-hydration-and-card
-      test-summary-search-and-autoloading]
+      test-summary-search-and-autoloading
+      test-hydrate-intent-summary]
   :i [(amnesia :a a)
       (hydration :a h)
       (view_layer :a vl)
@@ -111,11 +112,29 @@
       (assert (list-empty? res-empty-idx) "Search on empty index must return empty list"))
     true))
 
+(df test-hydrate-intent-summary [] -> Bool
+  :d "Verifies intent summary hydration and core axiom formatting without disk scanning."
+  (let [(axioms (h/default-core-axioms))
+        (summary (h/hydrate-intent-summary axioms))
+        (empty-summary (h/hydrate-intent-summary (list)))
+        (syn (h/synthesize-intent-summary "(:id \"d-0015\" :title \"Axiom of Token Arbitrage\")"))
+        (syn-fail (h/synthesize-intent-summary "empty"))]
+    (assert (= (list-length axioms) 4) "Default core axioms must contain exactly 4 entries")
+    (assert (string-contains? summary "d-0015: Token Arbitrage") "Summary must include Axiom 1 (d-0015)")
+    (assert (string-contains? summary "d-0016: Agent-Native Autonomy") "Summary must include Axiom 2 (d-0016)")
+    (assert (string-contains? summary "d-0017: Falsifiable Observability") "Summary must include Axiom 3 (d-0017)")
+    (assert (string-contains? summary "d-0018: In-Memory State Surgery") "Summary must include Axiom 4 (d-0018)")
+    (assert (string-contains? empty-summary "Token Arbitrage") "Empty axioms list must fall back to canonical axiom names")
+    (assert (string-contains? syn "d-0015") "Synthesized summary must contain d-0015 on matching ledger")
+    (assert (= syn-fail "Axioms: Ungrounded") "Synthesized summary must flag ungrounded on unmatched input")
+    true))
+
 (df run-tests [] -> Bool
-  :d "Executes comprehensive hydration unit test suite with 32 strict assertions."
+  :d "Executes comprehensive hydration unit test suite with 40 strict assertions."
   (and (test-compression-threshold)
        (and (test-cascade-compression)
             (and (test-cascade-compression-empty-buffer)
                  (and (test-raw-context-eviction)
                       (and (test-markdown-hydration-and-card)
-                           (test-summary-search-and-autoloading)))))))
+                           (and (test-summary-search-and-autoloading)
+                                (test-hydrate-intent-summary))))))))
