@@ -419,5 +419,23 @@
     (:sym :name "task-complete" :kind :fn :tokens 2)
     (:sym :name "task-format-asn" :kind :fn :tokens 3
           :rationale "Formats task into canonical ASN representation")
+
+    ;; Phase 320 Pointer Orchestrator Symbols
+    (:sym :name "PointerSpec" :kind :type :tokens 2)
+    (:sym :name "make-pointer-spec" :kind :fn :tokens 3
+          :rationale "Constructs a compact perceptual pointer specification record")
+    (:sym :name "deref-pointer" :kind :fn :tokens 2)
+    (:sym :name "collapse-pointer" :kind :fn :tokens 2)
+    (:sym :name "orchestrate-context-pointers" :kind :fn :tokens 3
+          :rationale "Orchestrates dynamic expansion of perceptual pointers within configured token budget ceiling")
+    (:sym :name "format-pointer-spec" :kind :fn :tokens 3
+          :rationale "Formats PointerSpec into canonical compact S-expression pointer representation")
+    (:sym :name "parse-pointer-spec" :kind :fn :tokens 3
+          :rationale "Parses compact S-expression pointer string into PointerSpec record")
+    (:sym :name "total-active-tokens" :kind :fn :tokens 3
+          :rationale "Calculates total active token footprint across perceptual pointer set")
+    (:sym :name "is-context-minimal?" :kind :fn :tokens 3
+          :rationale "Verifies active pointer context footprint remains strictly below minimal threshold")
   ]
 )
+
