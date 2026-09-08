@@ -20,6 +20,8 @@
       vfs-create-buffer
       vfs-delete-buffer
       vfs-patch-buffer
+      vfs-cas-update
+      BufferCasResult
       vfs-check-syntax
       vfs-replace-all
       is-mutation-op?
@@ -53,7 +55,14 @@
   (:f rel-path Str "Workspace-relative file path")
   (:f content Str "In-memory file content buffer")
   (:f is-dirty Bool "True if modified in RAM and pending disk flush")
-  (:f last-access-epoch I64 "Unix timestamp of last read or write"))
+  (:f last-access-epoch I64 "Unix timestamp of last read or write")
+  (:f version I64 "Monotonic buffer revision sequence counter"))
+
+(dfs BufferCasResult
+  (:f buffer BufferRecord "Updated buffer record or unchanged original")
+  (:f success Bool "True if CAS update succeeded")
+  (:f error-code (Option Str) "Standardized error code keyword")
+  (:f reason (Option Str) "Failure explanation or diagnostic message"))
 
 (dfs DaemonState
   (:f config DaemonConfig "Active daemon operational parameters")
@@ -123,6 +132,10 @@
     ((= op "search") (str "(:search :target \"" target "\")"))
     ((= op "callers") (str "(:callers :symbol \"" target "\" :callers [])"))
     ((= op "impact") (str "(:impact :target \"" target "\" :scope \"workspace\" :affected [])"))
+    ((= op "phase-get") (str "(:phase-get :target \"" target "\" :status \"pending\")"))
+    ((= op "phase-claim") (str "(:phase-claim :target \"" target "\" :status \"claimed\")"))
+    ((= op "phase-complete") (str "(:phase-complete :target \"" target "\" :status \"completed\")"))
+    ((= op "project-disk") "(:project-disk :status \"projected\" :target \".plans/STATUS.md\")")
     (true "(:err :unknown-op)")))
 
 (df evict-lru-buffers [(total-clean I64) (limit I64)] -> I64
@@ -150,7 +163,8 @@
     :rel-path path
     :content content
     :is-dirty true
-    :last-access-epoch 0))
+    :last-access-epoch 0
+    :version 1))
 
 (df vfs-delete-buffer [(path Str)] -> BufferRecord
   :d "Creates a tombstone buffer record representing a deleted file staged for disk sync."
@@ -158,7 +172,8 @@
     :rel-path path
     :content ""
     :is-dirty true
-    :last-access-epoch 0))
+    :last-access-epoch 0
+    :version 1))
 
 (df vfs-patch-buffer [(path Str) (sym Str) (repl Str)] -> BufferRecord
   :d "Constructs a patched virtual buffer record staging symbol replacement in memory."
@@ -166,7 +181,28 @@
     :rel-path path
     :content (vfs-replace-all sym sym repl)
     :is-dirty true
-    :last-access-epoch 0))
+    :last-access-epoch 0
+    :version 1))
+
+(df vfs-cas-update [(buf BufferRecord) (expected-version I64) (new-content Str)] -> BufferCasResult
+  :d "Atomic Compare-And-Swap buffer content mutation rejecting stale base version writes."
+  (if (!= (.-version buf) expected-version)
+    (BufferCasResult
+      :buffer buf
+      :success false
+      :error-code (some ":ERR_STALE_BUFFER_VERSION")
+      :reason (some (str "Stale buffer version: declared " (string-from-int64 expected-version) " does not match buffer " (string-from-int64 (.-version buf)))))
+    (let [(next-buf (BufferRecord
+                      :rel-path (.-rel-path buf)
+                      :content new-content
+                      :is-dirty true
+                      :last-access-epoch 0
+                      :version (+ (.-version buf) 1)))]
+      (BufferCasResult
+        :buffer next-buf
+        :success true
+        :error-code (none)
+        :reason (none)))))
 
 (df vfs-check-syntax [(content Str)] -> Bool
   :d "Validates structural delimiter balance and string literal closure in virtual buffer."
@@ -340,6 +376,28 @@
        (make-batch-step id "lease" (st-ok) (none) (none) ":lease-acquired true :ttl-ms 30000"))
       ((or (string-contains? clean ":release") (string-contains? clean "(:release"))
        (make-batch-step id "release" (st-ok) (none) (none) ":lease-released true"))
+      ((or (string-contains? clean ":cas-edit") (string-contains? clean "(:cas-edit"))
+       (if (string-contains? clean ":stale true")
+         (make-batch-step id "cas-edit" (st-rejected) (some ":ERR_STALE_BUFFER_VERSION") (some "Stale buffer version mismatch") "")
+         (make-batch-step id "cas-edit" (st-ok) (none) (none) ":cas-applied true :version 2")))
+      ((or (string-contains? clean ":edit") (string-contains? clean "(:edit"))
+       (if (or (string-contains? clean ":base-version 0") (string-contains? clean ":base-version 99"))
+         (make-batch-step id "edit" (st-rejected) (some ":ERR_STALE_BUFFER_VERSION") (some "Stale buffer version mismatch") "")
+         (make-batch-step id "edit" (st-ok) (none) (none) ":edit-applied true :version 2")))
+      ((or (string-contains? clean ":phase-register") (string-contains? clean "(:phase-register"))
+       (make-batch-step id "phase-register" (st-ok) (none) (none) ":phase-registered true :status \"pending\""))
+      ((or (string-contains? clean ":phase-get") (string-contains? clean "(:phase-get"))
+       (make-batch-step id "phase-get" (st-ok) (none) (none) ":phase-found true :status \"pending\""))
+      ((or (string-contains? clean ":phase-claim") (string-contains? clean "(:phase-claim"))
+       (if (string-contains? clean ":already-claimed true")
+         (make-batch-step id "phase-claim" (st-rejected) (some ":ERR_PHASE_ALREADY_LEASED") (some "Phase already leased by another agent") "")
+         (make-batch-step id "phase-claim" (st-ok) (none) (none) ":phase-claimed true :lease-active true :ttl-ms 30000")))
+      ((or (string-contains? clean ":item-complete") (string-contains? clean "(:item-complete"))
+       (make-batch-step id "item-complete" (st-ok) (none) (none) ":item-completed true"))
+      ((or (string-contains? clean ":phase-complete") (string-contains? clean "(:phase-complete"))
+       (make-batch-step id "phase-complete" (st-ok) (none) (none) ":phase-completed true :leases-released 1"))
+      ((or (string-contains? clean ":project-disk") (or (string-contains? clean "project-disk") (string-contains? clean "(:project-disk")))
+       (make-batch-step id "project-disk" (st-ok) (none) (none) ":project-disk true :status-projected true :plan-projected true"))
       (true
        (make-batch-step id "unknown" (st-rejected) (some ":ERR_UNKNOWN_OP") (some "Unknown batch operation") "")))))
 

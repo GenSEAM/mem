@@ -310,6 +310,39 @@
           :rationale "Unit test validating low confidence queries trigger agent delegation")
     (:sym :name "test-research-store-and-recall" :kind :fn :tokens 5
           :rationale "Unit test validating storing fact enables subsequent direct hit recall")
+
+    ;; Phase 296 Roadmap Engine, Dual-Projection & Buffer CAS Symbols
+    (:sym :name "ItemRecord" :kind :type :tokens 2)
+    (:sym :name "PhaseRecord" :kind :type :tokens 2)
+    (:sym :name "LeaseRecord" :kind :type :tokens 2)
+    (:sym :name "RoadmapRecord" :kind :type :tokens 2)
+    (:sym :name "ClaimResult" :kind :type :tokens 2)
+    (:sym :name "DualProjection" :kind :type :tokens 2)
+    (:sym :name "BufferCasResult" :kind :type :tokens 3
+          :rationale "Result envelope for atomic buffer compare and swap operation")
+    (:sym :name "make-item" :kind :fn :tokens 2)
+    (:sym :name "make-phase" :kind :fn :tokens 2)
+    (:sym :name "make-lease" :kind :fn :tokens 2)
+    (:sym :name "make-roadmap" :kind :fn :tokens 2)
+    (:sym :name "is-lease-active?" :kind :fn :tokens 3
+          :rationale "Validates if execution lease is active and within TTL")
+    (:sym :name "format-phase-defrecord" :kind :fn :tokens 3
+          :rationale "Serializes phase record into compact ASN Defrecord tuple")
+    (:sym :name "format-roadmap-asn" :kind :fn :tokens 3
+          :rationale "Serializes roadmap state into canonical ASN Defrecord representation")
+    (:sym :name "phase-get" :kind :fn :tokens 2)
+    (:sym :name "phase-register" :kind :fn :tokens 2)
+    (:sym :name "phase-claim" :kind :fn :tokens 2)
+    (:sym :name "item-complete" :kind :fn :tokens 2)
+    (:sym :name "phase-complete" :kind :fn :tokens 2)
+    (:sym :name "project-status-md" :kind :fn :tokens 3
+          :rationale "Projects in-memory roadmap state to human-readable STATUS markdown")
+    (:sym :name "project-plan-md" :kind :fn :tokens 3
+          :rationale "Projects single phase record to executable PLAN markdown")
+    (:sym :name "project-dual-manifest" :kind :fn :tokens 3
+          :rationale "Generates synchronized STATUS and PLAN markdown projections from memory")
+    (:sym :name "vfs-cas-update" :kind :fn :tokens 3
+          :rationale "Atomic compare and swap buffer update rejecting stale base versions")
   ]
 )
 
