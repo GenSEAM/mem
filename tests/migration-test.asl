@@ -72,6 +72,7 @@
   :d "Tests graceful fallback on empty YAML input"
   (let [(res (mig/migrate-pcp-constitution ""))]
     (assert (not (.-success res)) "empty input fails")
+    (assert (= (.-total-rules res) 0) "empty input total rules is 0")
     true))
 
 (df run-migration-tests [] -> Bool

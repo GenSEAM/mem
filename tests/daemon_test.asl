@@ -26,6 +26,7 @@
   :d "Verifies planar untangle step calculation."
   (let [(f (d/untangle-step 3.0 4.0 5.0 0.5))]
     (assert (= f 0.0) "Untangle force must be 0.0")
+    (assert (not (> f 0.0)) "Untangle force must not be positive")
     true))
 
 (df test-vfs-create-buffer [] -> Bool
