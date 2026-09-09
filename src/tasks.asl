@@ -35,7 +35,13 @@
       task-is-within-leeway?
       task-has-escalation-trigger?
       format-anticipated-risk-asn
-      format-task-tolerance-asn]
+      format-task-tolerance-asn
+      claim
+      state
+      settle
+      task/claim
+      task/state
+      task/settle]
   :i [(vfs :a v)
       (asl-text/escape :a esc)])
 
@@ -656,3 +662,16 @@
          "  :session-id \"" (esc/escape-asn-str (.-session-id task)) "\"\n"
          "  :lease-expires-at " (string-from-int64 (.-lease-expires-at task)) "\n"
          "  :receipts " rc-str ")\n")))
+
+
+(df claim [(task TaskRecord) (now-epoch I64)] -> TaskRecord
+  :d "1-to-2 token alias for task-claim."
+  (task-claim task now-epoch))
+
+(df state [(task TaskRecord)] -> Str
+  :d "1-to-2 token accessor for task state."
+  (.-state task))
+
+(df settle [(task TaskRecord) (receipt Str) (now-epoch I64)] -> TaskRecord
+  :d "1-to-2 token alias for task-complete."
+  (task-complete task receipt now-epoch))
