@@ -18,21 +18,21 @@
   (:f checksum Str "Integrity hash or identifier"))
 
 (df serialize-vector-item [(item s/VectorItem)] -> Str
-  :d "Encodes a VectorItem into an ASN @v:{...} frame."
+  :d "Encodes a VectorItem into an ASN v:{...} frame."
   (let [(dense (string-join (map (fn [(f F64)] -> Str (string-from-float64 f)) (.-vector item)) ","))]
-    (str "@v:{" (.-id item) "|" (.-text item) "|[" dense "]}")))
+    (str "v:{" (.-id item) "|" (.-text item) "|[" dense "]}")))
 
 (df serialize-graph-node-frame [(node g/GraphNode)] -> Str
-  :d "Encodes a GraphNode into an ASN @n:{...} frame."
-  (str "@n:{" (.-id node) "|" (.-label node) "|" (string-from-int64 (.-timestamp-epoch node)) "|" (string-from-float64 (.-confidence node)) "|" (.-content node) "}"))
+  :d "Encodes a GraphNode into an ASN n:{...} frame."
+  (str "n:{" (.-id node) "|" (.-label node) "|" (string-from-int64 (.-timestamp-epoch node)) "|" (string-from-float64 (.-confidence node)) "|" (.-content node) "}"))
 
 (df serialize-graph-edge [(edge g/GraphEdge)] -> Str
-  :d "Encodes a GraphEdge into an ASN @e:{...} frame."
-  (str "@e:{" (.-source-id edge) "|" (.-target-id edge) "|" (.-relation edge) "|" (string-from-float64 (.-weight edge)) "|" (string-from-int64 (.-timestamp-epoch edge)) "}"))
+  :d "Encodes a GraphEdge into an ASN e:{...} frame."
+  (str "e:{" (.-source-id edge) "|" (.-target-id edge) "|" (.-relation edge) "|" (string-from-float64 (.-weight edge)) "|" (string-from-int64 (.-timestamp-epoch edge)) "}"))
 
 (df create-snapshot-frame [(v-count I64) (n-count I64) (e-count I64) (epoch I64)] -> Str
-  :d "Encodes snapshot header metadata into @snap:{...} frame."
-  (str "@snap:{v1|"
+  :d "Encodes snapshot header metadata into snap:{...} frame."
+  (str "snap:{v1|"
        (string-from-int64 epoch) "|"
        (string-from-int64 v-count) "|"
        (string-from-int64 n-count) "|"

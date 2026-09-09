@@ -58,8 +58,8 @@
   :d "Verifies ASN frame serialization and ledger compilation."
   (let [(rec (c/encode-vector-frame "vec-1" "query test" (list 0.5 0.25 0.125)))
         (ledger (c/format-compact-ledger (list rec)))]
-    (assert (string-contains? (.-payload rec) "@v:{vec-1|query test|[0.5,0.25,0.125]}") "Payload must contain vector frame")
-    (assert (string-contains? ledger "@v:{vec-1") "Ledger must contain vector frame")
+    (assert (string-contains? (.-payload rec) "v:{vec-1|query test|[0.5,0.25,0.125]}") "Payload must contain vector frame")
+    (assert (string-contains? ledger "v:{vec-1") "Ledger must contain vector frame")
     true))
 
 (df test-graph-node-removal [] -> Bool

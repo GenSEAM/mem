@@ -16,7 +16,7 @@
 (df encode-vector-frame [(id Str) (text Str) (v (List F64))] -> CompactRecord
   :d "Serializes vector memory entry into compact ASN frame format."
   (let [(dense-v (float-list-to-dense-string v))
-        (frame (str "@v:{" id "|" text "|[" dense-v "]}"))]
+        (frame (str "v:{" id "|" text "|[" dense-v "]}"))]
     (CompactRecord
       :id id
       :frame-type "vector"
@@ -25,7 +25,7 @@
 
 (df serialize-graph-node [(node g/GraphNode)] -> CompactRecord
   :d "Serializes knowledge graph entity into compact ASN record."
-  (let [(frame (str "@n:{" (.-id node) "|" (.-label node) "|" (string-from-int64 (.-timestamp-epoch node)) "|" (string-from-float64 (.-confidence node)) "|" (.-content node) "}"))]
+  (let [(frame (str "n:{" (.-id node) "|" (.-label node) "|" (string-from-int64 (.-timestamp-epoch node)) "|" (string-from-float64 (.-confidence node)) "|" (.-content node) "}"))]
     (CompactRecord
       :id (.-id node)
       :frame-type "node"

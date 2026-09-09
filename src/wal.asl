@@ -71,7 +71,7 @@
 
 (df format-wal-frame [(e WalEntry)] -> Str
   :d "Encodes WalEntry into compact ASN log frame representation."
-  (str "@wal:{"
+  (str "wal:{"
        (string-from-int64 (.-seq-num e)) "|"
        (string-from-int64 (.-timestamp-epoch e)) "|"
        (op-type-to-string (.-op-type e)) "|"
@@ -79,12 +79,13 @@
        (.-payload e) "}"))
 
 (df parse-wal-frame [(raw Str)] -> (Option WalEntry)
-  :d "Parses a single @wal:{...} line into a WalEntry record."
+  :d "Parses a single wal:{...} line into a WalEntry record."
   (let [(trimmed (string-trim raw))]
-    (if (and (string-starts-with? trimmed "@wal:{")
+    (if (and (string-starts-with? trimmed "wal:{")
              (string-ends-with? trimmed "}"))
-      (let [(inner-len (- (string-length trimmed) 7))
-            (inner (option-or (string-slice trimmed 6 (+ 6 inner-len)) ""))
+      (let [(start-idx 5)
+            (inner-len (- (string-length trimmed) 6))
+            (inner (option-or (string-slice trimmed start-idx (+ start-idx inner-len)) ""))
             (parts (string-split inner "|"))]
         (if (>= (list-length parts) 5)
           (let [(seq-s (option-or (list-head parts) "0"))

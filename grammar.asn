@@ -1,7 +1,7 @@
 ;; Package Grammar & Exported Symbol Registry (ASN)
-;; @genseam/asl-mem
+;; asl-mem
 (:grammar
-  :package @genseam/asl-mem
+  :package asl-mem
   :version "0.1.0"
   :tokens-baseline 2
   :symbols [
@@ -350,6 +350,8 @@
     (:sym :name "RoadmapRecord" :kind :type :tokens 2)
     (:sym :name "ClaimResult" :kind :type :tokens 2)
     (:sym :name "DualProjection" :kind :type :tokens 2)
+    (:sym :name "AdrConsequence" :kind :type :tokens 2)
+    (:sym :name "AdrRecord" :kind :type :tokens 2)
     (:sym :name "BufferCasResult" :kind :type :tokens 3
           :rationale "Result envelope for atomic buffer compare and swap operation")
     (:sym :name "make-item" :kind :fn :tokens 2)
@@ -373,6 +375,13 @@
           :rationale "Projects single phase record to executable PLAN markdown")
     (:sym :name "project-dual-manifest" :kind :fn :tokens 3
           :rationale "Generates synchronized STATUS and PLAN markdown projections from memory")
+    (:sym :name "make-adr" :kind :fn :tokens 2)
+    (:sym :name "format-consequence-asn" :kind :fn :tokens 3
+          :rationale "Formats AdrConsequence into compact canonical ASN")
+    (:sym :name "format-adr-asn" :kind :fn :tokens 3
+          :rationale "Serializes AdrRecord into canonical machine ASN representation")
+    (:sym :name "project-adr-md" :kind :fn :tokens 3
+          :rationale "Renders AdrRecord into GitHub Flavored Markdown on-demand for human inspection")
     (:sym :name "vfs-cas-update" :kind :fn :tokens 3
           :rationale "Atomic compare and swap buffer update rejecting stale base versions")
     (:sym :name "Chunk" :kind :type :tokens 1)
@@ -438,7 +447,30 @@
           :rationale "Unit test verifying intent summary hydration")
   
     ;; Task Management & Scheduling Symbols (asl-mem/tasks)
+    (:sym :name "TaskReceipt" :kind :type :tokens 1)
     (:sym :name "TaskRecord" :kind :type :tokens 1)
+    (:sym :name "AnticipatedRisk" :kind :type :tokens 1)
+    (:sym :name "TaskTolerance" :kind :type :tokens 1)
+    (:sym :name "make-anticipated-risk" :kind :fn :tokens 2
+          :rationale "Constructs an AnticipatedRisk contingency specification")
+    (:sym :name "make-task-tolerance" :kind :fn :tokens 2
+          :rationale "Constructs a TaskTolerance record defining adaptation corridors for autonomous executors")
+    (:sym :name "task-is-within-leeway?" :kind :fn :tokens 2
+          :rationale "Validates that a proposed action falls within pre-approved leeway dimensions and violates zero strict invariants")
+    (:sym :name "task-has-escalation-trigger?" :kind :fn :tokens 2
+          :rationale "Determines if an execution event matches any mandatory escalation triggers")
+    (:sym :name "format-anticipated-risk-asn" :kind :fn :tokens 2
+          :rationale "Serializes an AnticipatedRisk contingency into canonical ASN representation")
+    (:sym :name "format-task-tolerance-asn" :kind :fn :tokens 2
+          :rationale "Serializes a TaskTolerance record into compact canonical ASN")
+    (:sym :name "make-task-receipt" :kind :fn :tokens 2
+          :rationale "Constructs a standardized physical execution TaskReceipt")
+    (:sym :name "receipt-is-verified?" :kind :fn :tokens 2
+          :rationale "Validates exit code zero, zero failures, and positive asserts evaluated")
+    (:sym :name "format-receipt-asn" :kind :fn :tokens 2
+          :rationale "Serializes TaskReceipt into canonical ASN representation")
+    (:sym :name "make-holistic-task" :kind :fn :tokens 2
+          :rationale "Constructs a fully-specified holistic task record")
     (:sym :name "make-task" :kind :fn :tokens 2)
     (:sym :name "task-owns-file?" :kind :fn :tokens 3
           :rationale "Checks if a task declared ownership over a specific file path")
@@ -446,6 +478,8 @@
           :rationale "Checks if two tasks declare overlapping file ownership")
     (:sym :name "task-overlap-files" :kind :fn :tokens 3
           :rationale "Returns the list of overlapping files between two tasks")
+    (:sym :name "task-overlap-blast-radius?" :kind :fn :tokens 3
+          :rationale "Detects AST symbol and caller blast-radius collisions between tasks")
     (:sym :name "task-dependencies-satisfied?" :kind :fn :tokens 3
           :rationale "Checks if all prerequisite tasks of a task have been completed")
     (:sym :name "task-parallel-eligible?" :kind :fn :tokens 3
@@ -456,9 +490,17 @@
           :rationale "Filters tasks that are eligible for immediate execution")
     (:sym :name "task-claim" :kind :fn :tokens 2)
     (:sym :name "task-start" :kind :fn :tokens 2)
+    (:sym :name "task-advance-step" :kind :fn :tokens 2
+          :rationale "Monotonically advances task execution step counter")
+    (:sym :name "task-capture-handoff" :kind :fn :tokens 2
+          :rationale "Captures working memory context snapshot for agent handoff")
+    (:sym :name "task-attach-receipt" :kind :fn :tokens 2
+          :rationale "Attaches verified execution receipt and sets completion timestamp")
     (:sym :name "task-complete" :kind :fn :tokens 2)
     (:sym :name "task-format-asn" :kind :fn :tokens 3
           :rationale "Formats task into canonical ASN representation")
+    (:sym :name "task-format-holistic-asn" :kind :fn :tokens 3
+          :rationale "Formats comprehensive holistic task specification into ASN")
 
     ;; Phase 320 Pointer Orchestrator Symbols
     (:sym :name "PointerSpec" :kind :type :tokens 2)
@@ -563,6 +605,35 @@
           :rationale "Directly queries raw terminal spool text using in-memory BM25 index")
     (:sym :name "spool-search-index" :kind :fn :tokens 3
           :rationale "Executes BM25 search query over pre-indexed terminal spool lines")
+    (:sym :name "NoteRecord" :kind :type :tokens 1)
+    (:sym :name "make-note" :kind :fn :tokens 2
+          :rationale "Constructs typed machine NoteRecord")
+    (:sym :name "note-is-active?" :kind :fn :tokens 2
+          :rationale "Evaluates if a note is currently active")
+    (:sym :name "note-has-tag?" :kind :fn :tokens 2
+          :rationale "Tests if a note contains a specified tag")
+    (:sym :name "note-scope-matches?" :kind :fn :tokens 2
+          :rationale "Tests if a note scope covers a specified file path")
+    (:sym :name "note-matches-query?" :kind :fn :tokens 2
+          :rationale "Evaluates query matching across note fields")
+    (:sym :name "format-note-asn" :kind :fn :tokens 2
+          :rationale "Serializes note into canonical machine ASN")
+    (:sym :name "project-note-md" :kind :fn :tokens 2
+          :rationale "Projects note into GitHub Flavored Markdown on-demand")
+    (:sym :name "note-promote-to-task" :kind :fn :tokens 2
+          :rationale "Promotes note observation to task work item")
+    (:sym :name "note-promote-to-adr" :kind :fn :tokens 2
+          :rationale "Promotes note observation to architectural decision record")
+    (:sym :name "task-claim-session" :kind :fn :tokens 2
+          :rationale "Claims task exclusively for session with time-bounded lease")
+    (:sym :name "task-is-claimed-by?" :kind :fn :tokens 2
+          :rationale "Validates if task is claimed by specified session")
+    (:sym :name "task-is-lease-expired?" :kind :fn :tokens 2
+          :rationale "Evaluates if task session lease has expired")
+    (:sym :name "task-recover-session" :kind :fn :tokens 2
+          :rationale "Recovers orphaned task for new session preserving step-index and context")
+    (:sym :name "task-spawn-subtask" :kind :fn :tokens 2
+          :rationale "Spawns discovered child task in pool linked to parent task")
   ]
 )
 

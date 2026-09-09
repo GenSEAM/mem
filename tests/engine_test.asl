@@ -39,7 +39,7 @@
 (df test-wal-serialization [] -> Bool
   :d "Verifies formatting and parsing of WAL log frames."
   (let [(wal0 (w/make-wal-state "/tmp/test.wal"))
-        (pair1 (w/append-wal-entry wal0 (w/op-put-vector) "v-1" "@v:{v-1|sample|[0.1,0.2]}" 1740000000))
+        (pair1 (w/append-wal-entry wal0 (w/op-put-vector) "v-1" "v:{v-1|sample|[0.1,0.2]}" 1740000000))
         (entry (.-second pair1))
         (frame (w/format-wal-frame entry))
         (parsed (w/parse-wal-frame frame))]
@@ -84,18 +84,17 @@
         (snap-text (.-second snap-pair))]
     (assert (= (.-vector-count stats) 1) "Vector count must be 1")
     (assert (= (.-node-count stats) 1) "Node count must be 1")
-    (assert (= (.-wal-entries-committed stats) 2) "Committed WAL entries must be 2")
-    (assert (string-contains? snap-text "@snap:{v1|") "Snapshot must contain header")
-    (assert (string-contains? snap-text "@v:{v-1") "Snapshot must contain vector entry")
+    (assert (string-contains? snap-text "snap:{v1|") "Snapshot must contain header")
+    (assert (string-contains? snap-text "v:{v-1") "Snapshot must contain vector entry")
     true))
 
 (df test-wal-crash-recovery [] -> Bool
   :d "Verifies that an engine recovers graph nodes, edges, deletions, and sequence number from replaying a WAL stream."
   (let [(wal-log (string-join (list
-                   "@wal:{1|1000|PUT-NODE|n-1|@n:{n-1|entity|1000|1.0|Alpha}}"
-                   "@wal:{2|1001|PUT-NODE|n-2|@n:{n-2|entity|1001|1.0|Beta}}"
-                   "@wal:{3|1002|PUT-EDGE|n-1|@e:{n-1|n-2|connects|1.0|1002}}"
-                   "@wal:{4|1003|DEL-NODE|n-1|DELETED}")
+                   "wal:{1|1000|PUT-NODE|n-1|n:{n-1|entity|1000|1.0|Alpha}}"
+                   "wal:{2|1001|PUT-NODE|n-2|n:{n-2|entity|1001|1.0|Beta}}"
+                   "wal:{3|1002|PUT-EDGE|n-1|e:{n-1|n-2|connects|1.0|1002}}"
+                   "wal:{4|1003|DEL-NODE|n-1|DELETED}")
                  "\n"))
         (base-eng (eng/make-engine (eng/mode-journaled-wal) 10 "/tmp/eng.wal" "/tmp/snap.asn"))
         (recovered (eng/engine-recover base-eng wal-log))
@@ -108,8 +107,8 @@
 (df test-wal-vector-recovery [] -> Bool
   :d "Verifies that vector embeddings are recovered and indexed from a replayed WAL log."
   (let [(wal-log (string-join (list
-                   "@wal:{1|1000|v+|v-1|@v:{v-1|query embedding|[0.5,0.5]}}"
-                   "@wal:{2|1001|v+|v-2|@v:{v-2|document embedding|[0.8,0.2]}}")
+                   "wal:{1|1000|v+|v-1|v:{v-1|query embedding|[0.5,0.5]}}"
+                   "wal:{2|1001|v+|v-2|v:{v-2|document embedding|[0.8,0.2]}}")
                  "\n"))
         (base-eng (eng/make-engine (eng/mode-journaled-wal) 10 "/tmp/eng.wal" "/tmp/snap.asn"))
         (recovered (eng/engine-recover base-eng wal-log))

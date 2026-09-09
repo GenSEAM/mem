@@ -186,12 +186,13 @@
       :last-checkpoint-epoch (.-last-checkpoint-epoch eng))))
 
 (df parse-node-frame [(frame Str)] -> (Option g/GraphNode)
-  :d "Parses serialized @n:{id|label|epoch|confidence|content} into a GraphNode."
+  :d "Parses serialized n:{id|label|epoch|confidence|content} into a GraphNode."
   (let [(trimmed (string-trim frame))]
-    (if (and (string-starts-with? trimmed "@n:{")
+    (if (and (string-starts-with? trimmed "n:{")
              (string-ends-with? trimmed "}"))
-      (let [(inner-len (- (string-length trimmed) 5))
-            (inner (option-or (string-slice trimmed 4 (+ 4 inner-len)) ""))
+      (let [(start-idx 3)
+            (inner-len (- (string-length trimmed) 4))
+            (inner (option-or (string-slice trimmed start-idx (+ start-idx inner-len)) ""))
             (parts (string-split inner "|"))]
         (if (>= (list-length parts) 5)
           (let [(id (option-or (list-head parts) ""))
@@ -213,12 +214,13 @@
       (none))))
 
 (df parse-edge-frame [(frame Str)] -> (Option g/GraphEdge)
-  :d "Parses serialized @e:{source|target|relation|weight|epoch} into a GraphEdge."
+  :d "Parses serialized e:{source|target|relation|weight|epoch} into a GraphEdge."
   (let [(trimmed (string-trim frame))]
-    (if (and (string-starts-with? trimmed "@e:{")
+    (if (and (string-starts-with? trimmed "e:{")
              (string-ends-with? trimmed "}"))
-      (let [(inner-len (- (string-length trimmed) 5))
-            (inner (option-or (string-slice trimmed 4 (+ 4 inner-len)) ""))
+      (let [(start-idx 3)
+            (inner-len (- (string-length trimmed) 4))
+            (inner (option-or (string-slice trimmed start-idx (+ start-idx inner-len)) ""))
             (parts (string-split inner "|"))]
         (if (>= (list-length parts) 5)
           (let [(src (option-or (list-head parts) ""))
@@ -240,12 +242,13 @@
       (none))))
 
 (df parse-vector-frame [(frame Str)] -> (Option s/VectorItem)
-  :d "Parses serialized @v:{id|text|[f1,f2,...]} into a VectorItem."
+  :d "Parses serialized v:{id|text|[f1,f2,...]} into a VectorItem."
   (let [(trimmed (string-trim frame))]
-    (if (and (string-starts-with? trimmed "@v:{")
+    (if (and (string-starts-with? trimmed "v:{")
              (string-ends-with? trimmed "}"))
-      (let [(inner-len (- (string-length trimmed) 5))
-            (inner (option-or (string-slice trimmed 4 (+ 4 inner-len)) ""))
+      (let [(start-idx 3)
+            (inner-len (- (string-length trimmed) 4))
+            (inner (option-or (string-slice trimmed start-idx (+ start-idx inner-len)) ""))
             (parts (string-split inner "|"))]
         (if (>= (list-length parts) 3)
           (let [(id (option-or (list-head parts) ""))

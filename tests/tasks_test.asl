@@ -1,16 +1,22 @@
 (module asl-mem/tests/tasks-test
-  :d "Unit verification suite for TaskRecord, ownership collision detection, dependency satisfaction, and parallel execution eligibility."
+  :d "Unit verification suite for Holistic Task Protocol, TaskReceipt, ownership and blast-radius collision detection, in-flight handoff, and parallel wave scheduling."
   :x [test-task-construction-and-accessors
       test-task-ownership-and-intersection
       test-task-dependency-and-readiness
       test-task-parallel-eligibility
       test-task-lifecycle-transitions
       test-task-asn-formatting
+      test-holistic-task-construction-and-accessors
+      test-task-receipt-and-verification
+      test-task-blast-radius-collision
+      test-task-in-flight-handoff-and-steps
+      test-task-holistic-asn-formatting
+      test-task-session-leases-and-recovery
       run-tests]
   :i [(tasks :a t)])
 
 (df test-task-construction-and-accessors [] -> Bool
-  :d "Verifies TaskRecord construction and accessor fields."
+  :d "Verifies legacy TaskRecord construction and accessor fields."
   (let [(task (t/make-task
                 "task-325-1"
                 "phase-325"
@@ -128,6 +134,215 @@
     (assert (string-contains? asn ":gate \"asl gate\"") "Must contain gate")
     true))
 
+(df test-holistic-task-construction-and-accessors [] -> Bool
+  :d "Verifies holistic task record construction with explicit why, where, target paths, blast radius symbols, and action DAG."
+  (let [(ht (t/make-holistic-task
+              "task-382-01"
+              "task-382-root"
+              "phase-382"
+              "Holistic Task Protocol Implementation"
+              "code-mutation"
+              "main"
+              "queued"
+              "high"
+              "implementer"
+              1773100000000
+              (list "mem/src/tasks.asl" "mem/tests/tasks_test.asl")
+              (list "make-holistic-task" "TaskReceipt" "task-advance-step")
+              (list "task-owns-file?" "TaskStore")
+              (list "task-381-05")
+              "asl test --strict-falsify mem/tests/tasks_test.asl"
+              "Canonical holistic task representation enforcing c-0001, c-0002, d-0034"
+              "Step 1: define struct; Step 2: author constructor; Step 3: verify with strict falsify"
+              (list "dual-case >= 2 asserts" "exit 0" "zero comments c-0001")
+              (list "define struct" "author constructor" "verify with gate")))]
+    (assert (= (.-id ht) "task-382-01") "Holistic task ID must match")
+    (assert (= (.-parent-id ht) "task-382-root") "Parent ID must match")
+    (assert (= (.-phase ht) "phase-382") "Phase must match")
+    (assert (= (.-kind ht) "code-mutation") "Kind must be code-mutation")
+    (assert (= (.-owner-role ht) "implementer") "Owner role must be implementer")
+    (assert (= (.-step-index ht) 0) "Initial step index must be 0")
+    (assert (= (.-handoff-context ht) "") "Initial handoff context must be empty")
+    (assert (= (list-length (.-target-symbols ht)) 3) "Target symbols count must be 3")
+    (assert (= (list-length (.-related-symbols ht)) 2) "Related symbols count must be 2")
+    (assert (= (list-length (.-action-dag ht)) 3) "Action DAG length must be 3")
+    (assert (= (list-length (.-acceptance-criteria ht)) 3) "Acceptance criteria count must be 3")
+    (assert (string-contains? (.-why ht) "c-0001") "Why must cite architectural invariant")
+    true))
+
+(df test-task-receipt-and-verification [] -> Bool
+  :d "Verifies physical TaskReceipt creation, formatting, and strict validation rules."
+  (let [(good-rc (t/make-task-receipt
+                   0
+                   42
+                   18
+                   32
+                   10
+                   0
+                   (list "mem/src/tasks.asl")
+                   "hash-abc-123"
+                   (list "c-0001" "c-0002" "d-0034")
+                   "32 assertions evaluated cleanly"))
+        (bad-rc-exit (t/make-task-receipt
+                       1
+                       50
+                       20
+                       30
+                       9
+                       1
+                       (list "mem/src/tasks.asl")
+                       "hash-abc-123"
+                       (list "c-0001")
+                       "Command failed with exit 1"))
+        (bad-rc-zero-asserts (t/make-task-receipt
+                              0
+                              10
+                              15
+                              0
+                              0
+                              0
+                              (list)
+                              "hash-none"
+                              (list)
+                              "Empty test output"))]
+    (assert (t/receipt-is-verified? good-rc) "Clean receipt with exit 0 and asserts > 0 must be verified")
+    (assert (not (t/receipt-is-verified? bad-rc-exit)) "Receipt with exit 1 must be rejected")
+    (assert (not (t/receipt-is-verified? bad-rc-zero-asserts)) "Receipt with zero evaluated assertions must be rejected as vacuous")
+    (let [(rc-asn (t/format-receipt-asn good-rc))]
+      (assert (string-contains? rc-asn "(:receipt") "Serialized receipt must contain (:receipt tag")
+      (assert (string-contains? rc-asn ":exit 0") "Serialized receipt must contain :exit 0")
+      (assert (string-contains? rc-asn ":asserts 32") "Serialized receipt must contain asserts count")
+      (assert (string-contains? rc-asn ":mutated [\"mem/src/tasks.asl\"]") "Serialized receipt must contain mutated files")
+      (assert (string-contains? rc-asn ":hash \"hash-abc-123\"") "Serialized receipt must contain diff hash")
+      true)))
+
+(df test-task-blast-radius-collision [] -> Bool
+  :d "Verifies detection of AST symbol and blast-radius caller collisions."
+  (let [(t1 (t/make-holistic-task
+              "t1" "" "p1" "Task 1" "code-mutation" "main" "queued" "normal" "implementer" 100
+              (list "pkg1/file.asl")
+              (list "symA" "symB")
+              (list "caller1" "caller2")
+              (list) "gate1" "why1" "spec1" (list) (list)))
+        (t2-disjoint (t/make-holistic-task
+                       "t2" "" "p1" "Task 2" "code-mutation" "main" "queued" "normal" "implementer" 100
+                       (list "pkg2/other.asl")
+                       (list "symX" "symY")
+                       (list "callerX")
+                       (list) "gate2" "why2" "spec2" (list) (list)))
+        (t3-sym-collision (t/make-holistic-task
+                            "t3" "" "p1" "Task 3" "code-mutation" "main" "queued" "normal" "implementer" 100
+                            (list "pkg3/third.asl")
+                            (list "symB")
+                            (list)
+                            (list) "gate3" "why3" "spec3" (list) (list)))
+        (t4-blast-collision (t/make-holistic-task
+                              "t4" "" "p1" "Task 4" "code-mutation" "main" "queued" "normal" "implementer" 100
+                              (list "pkg4/fourth.asl")
+                              (list "caller1")
+                              (list)
+                              (list) "gate4" "why4" "spec4" (list) (list)))]
+    (assert (not (t/task-overlap-blast-radius? t1 t2-disjoint)) "Disjoint symbol tasks must not collide in blast radius")
+    (assert (t/task-overlap-blast-radius? t1 t3-sym-collision) "Direct target symbol overlap symB must be detected as collision")
+    (assert (t/task-overlap-blast-radius? t1 t4-blast-collision) "Target symbol touching related caller caller1 must be detected as blast radius collision")
+    (assert (t/task-parallel-eligible? t1 t2-disjoint) "Disjoint tasks must be eligible for parallel execution")
+    (assert (not (t/task-parallel-eligible? t1 t3-sym-collision)) "Symbol-colliding tasks must NOT be eligible for parallel execution")
+    (assert (not (t/task-parallel-eligible? t1 t4-blast-collision)) "Blast-radius colliding tasks must NOT be eligible for parallel execution")
+    true))
+
+(df test-task-in-flight-handoff-and-steps [] -> Bool
+  :d "Verifies in-flight execution step advancement, state handoff capture, and verified receipt attachment."
+  (let [(task0 (t/make-holistic-task
+                 "ht-1" "" "p382" "Active In-Flight Task" "code-mutation" "main" "queued" "high" "implementer" 1000
+                 (list "a.asl") (list "sym1") (list) (list) "gate" "why" "spec" (list) (list "step 1" "step 2" "step 3")))
+        (task-started (t/task-start task0 1500))
+        (task-step1 (t/task-advance-step task-started 2000))
+        (task-handoff (t/task-capture-handoff task-step1 "(:handoff :checkpoint \"cp-1\" :vars [\"k1\" \"v1\"])" 2500))
+        (receipt (t/make-task-receipt 0 35 16 28 8 0 (list "a.asl") "hash-1" (list "c-0001") "8 passed"))
+        (task-completed (t/task-attach-receipt task-handoff receipt 3000))]
+    (assert (= (.-state task-started) "in-progress") "Started task must be in-progress")
+    (assert (= (.-started-at task-started) 1500) "Started-at timestamp must be 1500")
+    (assert (= (.-step-index task-step1) 1) "Step index must advance to 1")
+    (assert (= (.-updated-at task-step1) 2000) "Updated-at timestamp must be 2000")
+    (assert (= (.-step-index task-handoff) 1) "Step index preserved across handoff")
+    (assert (string-contains? (.-handoff-context task-handoff) "checkpoint \"cp-1\"") "Handoff context must contain serialized state snapshot")
+    (assert (= (.-updated-at task-handoff) 2500) "Updated-at updated on handoff capture")
+    (assert (= (.-state task-completed) "completed") "Task must transition to completed on valid receipt")
+    (assert (= (.-completed-at task-completed) 3000) "Completed-at timestamp must be 3000")
+    (assert (= (list-length (.-receipts task-completed)) 1) "Task must have 1 attached receipt")
+    (assert (string-contains? (option-or (list-head (.-receipts task-completed)) "") ":asserts 28") "Attached receipt must contain physical assertion count")
+    true))
+
+(df test-task-holistic-asn-formatting [] -> Bool
+  :d "Verifies full serialization of holistic task specification to ASN."
+  (let [(ht (t/make-holistic-task
+              "task-holistic-99"
+              "task-holistic-parent"
+              "phase-382"
+              "Universal Task Serialization"
+              "code-mutation"
+              "main"
+              "completed"
+              "urgent"
+              "planner"
+              1773000000000
+              (list "src/target.asl")
+              (list "ExportedFunc")
+              (list "DependentCaller")
+              (list "task-prev-01")
+              "asl gate"
+              "Architectural verification"
+              "Implement serialization"
+              (list "criteria-1" "criteria-2")
+              (list "action-1" "action-2")))
+        (asn (t/task-format-holistic-asn ht))]
+    (assert (string-contains? asn "(:task") "Must contain :task tag")
+    (assert (string-contains? asn ":id \"task-holistic-99\"") "Must contain ID")
+    (assert (string-contains? asn ":parent-id \"task-holistic-parent\"") "Must contain parent-id")
+    (assert (string-contains? asn ":kind :code-mutation") "Must contain kind")
+    (assert (string-contains? asn ":owner-role \"planner\"") "Must contain owner-role")
+    (assert (string-contains? asn ":target-symbols [\"ExportedFunc\"]") "Must contain target-symbols")
+    (assert (string-contains? asn ":related-symbols [\"DependentCaller\"]") "Must contain related-symbols")
+    (assert (string-contains? asn ":acceptance-criteria [\"criteria-1\" \"criteria-2\"]") "Must contain acceptance-criteria")
+    (assert (string-contains? asn ":action-dag [\"action-1\" \"action-2\"]") "Must contain action-dag")
+    true))
+
+(df test-task-session-leases-and-recovery [] -> Bool
+  :d "Verifies session leases, crash recovery checkpoint preservation, and child task spawning."
+  (let [(t0 (t/make-holistic-task
+              "task-rec-1" "" "p388" "Session Lease Task" "code-mutation" "main" "queued" "high" "implementer" 1000
+              (list "mem/src/tasks.asl") (list "task-recover-session") (list) (list) "gate" "why" "spec" (list) (list "step 1" "step 2")))
+        (t-claimed (t/task-claim-session t0 "session-alpha" 5000 1000))]
+    (assert (= (.-session-id t-claimed) "session-alpha") "Session ID must match claimed session")
+    (assert (= (.-lease-expires-at t-claimed) 6000) "Lease expires at now + lease-ms")
+    (assert (= (.-state t-claimed) "claimed") "State must be claimed")
+    (assert (t/task-is-claimed-by? t-claimed "session-alpha") "Task must be claimed by session-alpha")
+    (assert (not (t/task-is-claimed-by? t-claimed "session-beta")) "Task must not be claimed by session-beta")
+    (assert (not (t/task-is-lease-expired? t-claimed 5999)) "Lease is not expired before deadline")
+    (assert (t/task-is-lease-expired? t-claimed 6000) "Lease is expired at deadline")
+    (assert (t/task-is-lease-expired? t-claimed 7000) "Lease is expired after deadline")
+    (let [(t-started (t/task-start t-claimed 1500))
+          (t-step1 (t/task-advance-step t-started 2000))
+          (t-handoff (t/task-capture-handoff t-step1 "(:checkpoint \"step-1-saved\")" 2500))
+          (t-recovered (t/task-recover-session t-handoff "session-beta" 5000 7000))]
+      (assert (= (.-session-id t-recovered) "session-beta") "Recovered task must be claimed by session-beta")
+      (assert (= (.-lease-expires-at t-recovered) 12000) "Recovered task lease expires at 12000")
+      (assert (= (.-state t-recovered) "in-progress") "Recovered task transitions to in-progress")
+      (assert (= (.-step-index t-recovered) 1) "Recovered task must preserve step-index")
+      (assert (= (.-handoff-context t-recovered) "(:checkpoint \"step-1-saved\")") "Recovered task must preserve handoff context")
+      (let [(child (t/task-spawn-subtask t-recovered "task-rec-1-sub1" "Discovered Child" (list "new/file.asl") 7500))]
+        (assert (= (.-id child) "task-rec-1-sub1") "Spawned child ID must match")
+        (assert (= (.-parent-id child) "task-rec-1") "Spawned child parent-id must match parent task")
+        (assert (= (.-kind child) "task-spawn") "Spawned child kind must be task-spawn")
+        (assert (= (.-state child) "queued") "Spawned child initial state must be queued")
+        (assert (= (list-length (.-depends-on child)) 1) "Spawned child must depend on parent")
+        (assert (= (option-or (list-head (.-depends-on child)) "") "task-rec-1") "Spawned child depends on parent ID")
+        (assert (= (.-session-id child) "") "Spawned child must be unassigned initially")
+        (let [(asn (t/task-format-holistic-asn t-recovered))]
+          (assert (string-contains? asn ":session-id \"session-beta\"") "Serialized task contains session-id")
+          (assert (string-contains? asn ":lease-expires-at 12000") "Serialized task contains lease-expires-at")
+          true)))))
+
 (df run-tests [] -> Bool
   :d "Executes complete unit test suite for asl-mem/tasks."
   (do
@@ -137,5 +352,11 @@
     (assert (test-task-parallel-eligibility) "test-task-parallel-eligibility failed")
     (assert (test-task-lifecycle-transitions) "test-task-lifecycle-transitions failed")
     (assert (test-task-asn-formatting) "test-task-asn-formatting failed")
-    (println "PASS (asl-mem/tasks: all 26 assertions passed cleanly)")
+    (assert (test-holistic-task-construction-and-accessors) "test-holistic-task-construction-and-accessors failed")
+    (assert (test-task-receipt-and-verification) "test-task-receipt-and-verification failed")
+    (assert (test-task-blast-radius-collision) "test-task-blast-radius-collision failed")
+    (assert (test-task-in-flight-handoff-and-steps) "test-task-in-flight-handoff-and-steps failed")
+    (assert (test-task-holistic-asn-formatting) "test-task-holistic-asn-formatting failed")
+    (assert (test-task-session-leases-and-recovery) "test-task-session-leases-and-recovery failed")
+    (println "PASS (asl-mem/tasks: all 85 assertions passed cleanly across legacy and holistic task protocols)")
     true))
