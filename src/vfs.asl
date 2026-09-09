@@ -12,10 +12,10 @@
       resolve
       read
       write
-      v/norm
-      v/resolve
-      v/read
-      v/write]
+      v-norm
+      v-resolve
+      v-read
+      v-write]
   :i [])
 
 (dfs VFSBuffer
@@ -232,19 +232,19 @@
   :d "1-to-2 token alias for vfs-write."
   (vfs-write registry path new-content))
 
-(df v/norm [(path Str)] -> Str
-  :d "Namespace alias for norm."
+(df v-norm [(path Str)] -> Str
+  :d "Hyphen compatibility alias for norm."
   (norm path))
 
-(df v/resolve [(base Str) (rel-path Str)] -> Str
-  :d "Namespace alias for resolve."
+(df v-resolve [(base Str) (rel-path Str)] -> Str
+  :d "Hyphen compatibility alias for resolve."
   (resolve base rel-path))
 
-(df v/read [(registry VFSRegistry) (path Str)] -> (Option VFSBuffer)
-  :d "Namespace alias for read."
+(df v-read [(registry VFSRegistry) (path Str)] -> (Option VFSBuffer)
+  :d "Hyphen compatibility alias for read."
   (read registry path))
 
-(df v/write [(registry VFSRegistry) (path Str) (new-content Str)] -> VFSRegistry
-  :d "Namespace alias for write."
+(df v-write [(registry VFSRegistry) (path Str) (new-content Str)] -> VFSRegistry
+  :d "Hyphen compatibility alias for write."
   (write registry path new-content))
 
