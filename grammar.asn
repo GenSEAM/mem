@@ -675,6 +675,56 @@
           :rationale "Verifies complete restoration of base content and hash on rollback")
     (:sym :name "test-preview-token-savings" :kind :fn :tokens 4
           :rationale "Verifies accurate token savings calculation across multiple rules")
+
+    ;; Multi-Agent Swarm In-Flight Handoff, Session Leases & Crash Recovery (Phase 397)
+    (:sym :name "SessionLease" :kind :type :tokens 1)
+    (:sym :name "make-session-lease" :kind :fn :tokens 3
+          :rationale "Constructs new exclusive session lease with time-bounded expiration")
+    (:sym :name "renew-session-lease" :kind :fn :tokens 3
+          :rationale "Renews active session lease updating heartbeat timestamp and extending expiration")
+    (:sym :name "is-lease-expired?" :kind :fn :tokens 3
+          :rationale "Evaluates if session lease has reached or passed expiration deadline")
+    (:sym :name "steal-expired-lease" :kind :fn :tokens 3
+          :rationale "Deterministic lease stealing protocol for replacement agents upon timeout")
+    (:sym :name "format-lease-asn" :kind :fn :tokens 3
+          :rationale "Serializes session lease record into canonical machine ASN notation")
+    (:sym :name "RecoverySnapshot" :kind :type :tokens 1)
+    (:sym :name "recover-task-session" :kind :fn :tokens 3
+          :rationale "Constructs recovery snapshot restoring previous session and step context")
+    (:sym :name "resume-action-dag" :kind :fn :tokens 3
+          :rationale "Extracts remaining pending sub-steps in action DAG from active step index")
+    (:sym :name "extract-handoff-state" :kind :fn :tokens 3
+          :rationale "Extracts validated working memory context snapshot from task record")
+    (:sym :name "verify-checkpoint-integrity" :kind :fn :tokens 3
+          :rationale "Validates structural integrity and bounds of task checkpoint state")
+    (:sym :name "format-recovery-asn" :kind :fn :tokens 3
+          :rationale "Serializes recovery snapshot into canonical machine ASN notation")
+    (:sym :name "test-lease-make" :kind :fn :tokens 3
+          :rationale "Verifies initial session lease creation and field invariants")
+    (:sym :name "test-lease-renew-heartbeat" :kind :fn :tokens 4
+          :rationale "Verifies heartbeat renewal increments counter and extends expiration")
+    (:sym :name "test-lease-expiration-predicate" :kind :fn :tokens 4
+          :rationale "Verifies expiration predicate boundaries before at and after TTL deadline")
+    (:sym :name "test-lease-stealing-active-rejected" :kind :fn :tokens 5
+          :rationale "Verifies active non-expired lease cannot be stolen by replacement agent")
+    (:sym :name "test-lease-stealing-expired-success" :kind :fn :tokens 5
+          :rationale "Verifies expired lease is deterministically reclaimed by replacement agent")
+    (:sym :name "test-lease-asn-serialization" :kind :fn :tokens 4
+          :rationale "Verifies ASN serialization format matches machine specification")
+    (:sym :name "test-lease-modular-aliases" :kind :fn :tokens 4
+          :rationale "Verifies modular aliases execute identical semantics for session lease")
+    (:sym :name "test-checkpoint-integrity-validation" :kind :fn :tokens 4
+          :rationale "Verifies boundary checks for checkpoint integrity under valid and invalid states")
+    (:sym :name "test-extract-handoff-state" :kind :fn :tokens 4
+          :rationale "Verifies extraction of handoff context from intact and corrupt tasks")
+    (:sym :name "test-resume-action-dag" :kind :fn :tokens 4
+          :rationale "Verifies slicing of action DAG from arbitrary step index offsets")
+    (:sym :name "test-recover-task-session-snapshot" :kind :fn :tokens 5
+          :rationale "Verifies recovery snapshot construction preserves previous session and step context")
+    (:sym :name "test-recovery-asn-serialization" :kind :fn :tokens 4
+          :rationale "Verifies ASN serialization format for recovery snapshot")
+    (:sym :name "test-recovery-modular-aliases" :kind :fn :tokens 4
+          :rationale "Verifies modular aliases execute identical semantics for task recovery")
   ]
 )
 
