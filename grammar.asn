@@ -634,6 +634,16 @@
           :rationale "Recovers orphaned task for new session preserving step-index and context")
     (:sym :name "task-spawn-subtask" :kind :fn :tokens 2
           :rationale "Spawns discovered child task in pool linked to parent task")
+
+    ;; Modular VFS Aliases (d46, d47)
+    (:sym :name "v/norm" :kind :fn :tokens 2
+          :rationale "Modular 1-to-2 token alias for normalize-path")
+    (:sym :name "v/resolve" :kind :fn :tokens 2
+          :rationale "Modular 1-to-2 token alias for path resolution")
+    (:sym :name "v/read" :kind :fn :tokens 2
+          :rationale "Modular 1-to-2 token alias for vfs-read")
+    (:sym :name "v/write" :kind :fn :tokens 2
+          :rationale "Modular 1-to-2 token alias for vfs-write")
   ]
 )
 
