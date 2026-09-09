@@ -652,6 +652,29 @@
           :rationale "Modular 1-to-2 token accessor for task state")
     (:sym :name "task/settle" :kind :fn :tokens 2
           :rationale "Modular 1-to-2 token alias for task-complete")
+
+    ;; Staged AST Refactoring & CAS Diff Review (Phase 395)
+    (:sym :name "RefactorPlan" :kind :type :tokens 1)
+    (:sym :name "stage-refactor-diff" :kind :fn :tokens 3
+          :rationale "Stages in-memory AST compaction diff against VFS buffer with CAS validation")
+    (:sym :name "preview-token-savings" :kind :fn :tokens 3
+          :rationale "Previews estimated token savings count for buffer content under compaction rules")
+    (:sym :name "commit-staged-refactor" :kind :fn :tokens 3
+          :rationale "Commits staged refactor to VFS buffer with CAS hash validation")
+    (:sym :name "rollback-staged-refactor" :kind :fn :tokens 3
+          :rationale "Rolls back staged or committed refactor in VFS buffer to pristine base content")
+
+    ;; Staged AST Refactoring Test Symbols
+    (:sym :name "test-stage-refactor-diff" :kind :fn :tokens 4
+          :rationale "Verifies in-memory diff generation and token savings preview")
+    (:sym :name "test-commit-staged-refactor-success" :kind :fn :tokens 5
+          :rationale "Verifies successful commit when CAS hash matches base hash")
+    (:sym :name "test-commit-staged-refactor-conflict" :kind :fn :tokens 5
+          :rationale "Verifies rejection of commit when CAS hash drifts")
+    (:sym :name "test-rollback-staged-refactor" :kind :fn :tokens 4
+          :rationale "Verifies complete restoration of base content and hash on rollback")
+    (:sym :name "test-preview-token-savings" :kind :fn :tokens 4
+          :rationale "Verifies accurate token savings calculation across multiple rules")
   ]
 )
 
