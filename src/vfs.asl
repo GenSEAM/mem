@@ -7,7 +7,15 @@
       vfs-write
       vfs-cas-hash
       vfs-diff
-      normalize-path]
+      normalize-path
+      norm
+      resolve
+      read
+      write
+      v/norm
+      v/resolve
+      v/read
+      v/write]
   :i [])
 
 (dfs VFSBuffer
@@ -200,3 +208,26 @@
     (let [(base-lines (split-lines (.-base-content buf)))
           (cur-lines (split-lines (.-content buf)))]
       (diff-lines-loop base-lines cur-lines 0 0 (list)))))
+
+
+(df norm [(path Str)] -> Str
+  :d "1-to-2 token alias for normalize-path."
+  (normalize-path path))
+
+(df resolve [(base Str) (rel-path Str)] -> Str
+  :d "Resolves a relative path against a base path into normalized form."
+  (let [(norm-rel (normalize-path rel-path))
+        (norm-base (normalize-path base))]
+    (if (string-empty? norm-base)
+      norm-rel
+      (if (string-empty? norm-rel)
+        norm-base
+        (str norm-base "/" norm-rel)))))
+
+(df read [(registry VFSRegistry) (path Str)] -> (Option VFSBuffer)
+  :d "1-to-2 token alias for vfs-read."
+  (vfs-read registry path))
+
+(df write [(registry VFSRegistry) (path Str) (new-content Str)] -> VFSRegistry
+  :d "1-to-2 token alias for vfs-write."
+  (vfs-write registry path new-content))
