@@ -769,6 +769,22 @@
           :rationale "Forks in-memory mutant cluster with discrete structural perturbations")
     (:sym :name "evaluate-mutant-survival" :kind :fn :tokens 3
           :rationale "Evaluates mutant survival against test suite execution")
+    (:sym :name "ConsistencyDimension" :kind :type :tokens 2
+          :rationale "Enum of 5 epistemic consistency audit dimensions")
+    (:sym :name "ConsistencyReport" :kind :type :tokens 2
+          :rationale "Comprehensive verification report across all 5 dimensions")
+    (:sym :name "canonical-shortcode" :kind :fn :tokens 2
+          :rationale "Normalizes ADR shortcodes to canonical form")
+    (:sym :name "verify-shortcode-bidirectional?" :kind :fn :tokens 3
+          :rationale "Validates bidirectional equality of ADR and task links")
+    (:sym :name "check-d52-completeness?" :kind :fn :tokens 3
+          :rationale "Verifies presence of required D52 enriched context fields")
+    (:sym :name "verify-roadmap-gate?" :kind :fn :tokens 3
+          :rationale "Verifies phase verification gate command validity")
+    (:sym :name "make-clean-report" :kind :fn :tokens 3
+          :rationale "Constructs clean passing consistency report")
+    (:sym :name "audit-consistency-state" :kind :fn :tokens 3
+          :rationale "Aggregates multi-dimensional consistency state into verdict")
   ]
 )
 
