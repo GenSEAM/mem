@@ -132,9 +132,9 @@
     (assert (string-contains? asn "(:task") "Must contain :task tag")
     (assert (string-contains? asn ":id \"task-100-1\"") "Must contain task ID")
     (assert (string-contains? asn ":phase \"phase-100\"") "Must contain phase")
-    (assert (string-contains? asn ":created-at 1757000000") "Must contain created-at")
+    (assert (string-contains? asn ":createdAt 1757000000") "Must contain createdAt")
     (assert (string-contains? asn ":owns [\"src/a.asl\" \"src/b.asl\"]") "Must contain owns")
-    (assert (string-contains? asn ":depends-on [\"task-99-1\"]") "Must contain depends-on")
+    (assert (string-contains? asn ":dependsOn [\"task-99-1\"]") "Must contain dependsOn")
     (assert (string-contains? asn ":gate \"asl gate\"") "Must contain gate")
     true))
 

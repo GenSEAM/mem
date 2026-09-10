@@ -213,11 +213,11 @@
     (str "(:task\n  :id \"" (.-id task) "\"\n  :phase \"" (.-phase task) "\"\n  :title \"" (esc/escape-asn-str (.-title task))
          "\"\n  :kind :" (.-kind task) "\n  :lane \"" (.-lane task) "\"\n  :state :" (.-state task) "\n  :priority :" (.-priority task)
          "\n  :effort :" (.-effort task) "\n  :risk :" (.-risk task)
-         (if (= (.-root-cause task) "") "" (str "\n  :root-cause \"" (esc/escape-asn-str (.-root-cause task)) "\""))
+         (if (= (.-root-cause task) "") "" (str "\n  :rootCause \"" (esc/escape-asn-str (.-root-cause task)) "\""))
          (if (= (list-length (.-consequences task)) 0) "" (str "\n  :consequences " cons-str))
          (if (= (list-length (.-drawbacks task)) 0) "" (str "\n  :drawbacks " draw-str))
-         "\n  :created-at " (string-from-int64 (.-created-at task)) "\n  :updated-at " (string-from-int64 (.-updated-at task))
-         "\n  :owns " owns-str "\n  :depends-on " deps-str "\n  :gate \"" (esc/escape-asn-str (.-gate task))
+         "\n  :createdAt " (string-from-int64 (.-created-at task)) "\n  :updatedAt " (string-from-int64 (.-updated-at task))
+         "\n  :owns " owns-str "\n  :dependsOn " deps-str "\n  :gate \"" (esc/escape-asn-str (.-gate task))
          "\"\n  :why \"" (esc/escape-asn-str (.-why task)) "\"\n  :receipts " rc-str ")\n")))
 
 (df task-format-holistic-asn [(task TaskRecord)] -> Str
@@ -239,22 +239,22 @@
         (cons-str (str "[" (string-join cons-quoted " ") "]"))
         (draw-quoted (map (fn [(s Str)] -> Str (str "\"" (esc/escape-asn-str s) "\"")) (.-drawbacks task)))
         (draw-str (str "[" (string-join draw-quoted " ") "]"))]
-    (str "(:task\n  :id \"" (.-id task) "\"\n  :parent-id \"" (.-parent-id task) "\"\n  :phase \"" (.-phase task)
+    (str "(:task\n  :id \"" (.-id task) "\"\n  :parentId \"" (.-parent-id task) "\"\n  :phase \"" (.-phase task)
          "\"\n  :title \"" (esc/escape-asn-str (.-title task)) "\"\n  :kind :" (.-kind task) "\n  :lane \"" (.-lane task)
          "\"\n  :state :" (.-state task) "\n  :priority :" (.-priority task) "\n  :effort :" (.-effort task) "\n  :risk :" (.-risk task)
-         "\n  :owner-role \"" (.-owner-role task)
-         (if (= (.-root-cause task) "") "" (str "\n  :root-cause \"" (esc/escape-asn-str (.-root-cause task)) "\""))
+         "\n  :ownerRole \"" (.-owner-role task)
+         (if (= (.-root-cause task) "") "" (str "\n  :rootCause \"" (esc/escape-asn-str (.-root-cause task)) "\""))
          (if (= (list-length (.-consequences task)) 0) "" (str "\n  :consequences " cons-str))
          (if (= (list-length (.-drawbacks task)) 0) "" (str "\n  :drawbacks " draw-str))
-         "\n  :created-at " (string-from-int64 (.-created-at task)) "\n  :updated-at " (string-from-int64 (.-updated-at task))
-         "\n  :started-at " (string-from-int64 (.-started-at task)) "\n  :completed-at " (string-from-int64 (.-completed-at task))
-         "\n  :owns " owns-str "\n  :target-symbols " tsym-str "\n  :related-symbols " rsym-str "\n  :depends-on " deps-str
+         "\n  :createdAt " (string-from-int64 (.-created-at task)) "\n  :updatedAt " (string-from-int64 (.-updated-at task))
+         "\n  :startedAt " (string-from-int64 (.-started-at task)) "\n  :completedAt " (string-from-int64 (.-completed-at task))
+         "\n  :owns " owns-str "\n  :targetSymbols " tsym-str "\n  :relatedSymbols " rsym-str "\n  :dependsOn " deps-str
          "\n  :gate \"" (esc/escape-asn-str (.-gate task)) "\"\n  :why \"" (esc/escape-asn-str (.-why task))
-         "\"\n  :spec \"" (esc/escape-asn-str (.-spec task)) "\"\n  :acceptance-criteria " crit-str
-         "\n  :step-index " (string-from-int64 (.-step-index task)) "\n  :action-dag " dag-str
-         "\n  :handoff-context \"" (esc/escape-asn-str (.-handoff-context task))
-         "\"\n  :session-id \"" (esc/escape-asn-str (.-session-id task))
-         "\"\n  :lease-expires-at " (string-from-int64 (.-lease-expires-at task)) "\n  :receipts " rc-str ")\n")))
+         "\"\n  :spec \"" (esc/escape-asn-str (.-spec task)) "\"\n  :acceptanceCriteria " crit-str
+         "\n  :stepIndex " (string-from-int64 (.-step-index task)) "\n  :actionDag " dag-str
+         "\n  :handoffContext \"" (esc/escape-asn-str (.-handoff-context task))
+         "\"\n  :sessionId \"" (esc/escape-asn-str (.-session-id task))
+         "\"\n  :leaseExpiresAt " (string-from-int64 (.-lease-expires-at task)) "\n  :receipts " rc-str ")\n")))
 
 (df state [(task TaskRecord)] -> Str
   :d "1-to-2 token accessor for task state."
