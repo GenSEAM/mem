@@ -1,13 +1,13 @@
 (module asl-mem/tests/task-recovery-test
   :d "Unit verification suite for checkpointed action DAG step recovery protocol."
-  :x [test-checkpoint-integrity-validation
-      test-extract-handoff-state
-      test-resume-action-dag
-      test-recover-task-session-snapshot
-      test-recovery-asn-serialization
-      test-recovery-modular-aliases
+  :x [TestCheckpointIntegrityValidation
+      TestExtractHandoffState
+      TestResumeActionDag
+      TestRecoverTaskSessionSnapshot
+      TestRecoveryAsnSerialization
+      TestRecoveryModularAliases
       run-tests]
-  :i [(tasks :a t)
+  :i [(tasks_store :a t)
       (task_recovery :a rec)])
 
 (df make-sample-task [(id Str) (idx I64) (handoff Str) (sess-id Str)] -> t/TaskRecord
@@ -39,9 +39,14 @@
     :handoff-context handoff
     :receipts (list)
     :session-id sess-id
-    :lease-expires-at 15000))
+    :lease-expires-at 15000
+    :effort "s"
+    :risk "low"
+    :root-cause ""
+    :consequences (list)
+    :drawbacks (list)))
 
-(df test-checkpoint-integrity-validation [] -> Bool
+(df TestCheckpointIntegrityValidation [] -> Bool
   :d "Verifies boundary checks for checkpoint integrity under valid and invalid states."
   (let [(t-valid-start (make-sample-task "task-valid-0" 0 "" "sess-1"))
         (t-valid-mid (make-sample-task "task-valid-2" 2 "(:state :parsed)" "sess-1"))
@@ -59,7 +64,7 @@
     (assert (not (rec/verify-checkpoint-integrity t-empty-id)) "Empty task ID must fail integrity")
     true))
 
-(df test-extract-handoff-state [] -> Bool
+(df TestExtractHandoffState [] -> Bool
   :d "Verifies extraction of handoff context from intact and corrupt tasks."
   (let [(t-clean (make-sample-task "task-c1" 1 "(:ast-tree :clean)" "sess-1"))
         (t-empty (make-sample-task "task-c2" 0 "" "sess-1"))
@@ -69,7 +74,7 @@
     (assert (= (rec/extract-handoff-state t-bad) "") "Corrupted task handoff extraction must return empty string")
     true))
 
-(df test-resume-action-dag [] -> Bool
+(df TestResumeActionDag [] -> Bool
   :d "Verifies slicing of action DAG from arbitrary step index offsets."
   (let [(dag (list "Step 0: parse AST" "Step 1: check types" "Step 2: run tests" "Step 3: settle"))
         (res-0 (rec/resume-action-dag dag 0))
@@ -89,7 +94,7 @@
     (assert (= (list-length res-oob) 0) "Resuming beyond DAG length must yield empty list")
     true))
 
-(df test-recover-task-session-snapshot [] -> Bool
+(df TestRecoverTaskSessionSnapshot [] -> Bool
   :d "Verifies recovery snapshot construction preserves previous session and step context."
   (let [(t (make-sample-task "task-397-02" 2 "(:vfs-checkpoint :rev 42)" "crashed-agent-alpha"))
         (snap (rec/recover-task-session t "replacement-agent-beta" 25000))]
@@ -105,7 +110,7 @@
     (assert (= (.-recovered-at snap) 25000) "Snapshot recovered-at must match recovery epoch")
     true))
 
-(df test-recovery-asn-serialization [] -> Bool
+(df TestRecoveryAsnSerialization [] -> Bool
   :d "Verifies ASN serialization format for recovery snapshot."
   (let [(t (make-sample-task "task-397-02" 2 "(:vfs :clean)" "sess-old"))
         (snap (rec/recover-task-session t "sess-new" 30000))
@@ -121,7 +126,7 @@
     (assert (string-contains? asn-str ":recovered-at 30000") "Output must contain recovered-at 30000")
     true))
 
-(df test-recovery-modular-aliases [] -> Bool
+(df TestRecoveryModularAliases [] -> Bool
   :d "Verifies 1-to-2 token modular aliases match primary function behavior."
   (let [(t (make-sample-task "task-397-mod" 1 "(:mod-state true)" "sess-orig"))
         (valid? (rec/verify t))
@@ -138,11 +143,11 @@
 
 (df run-tests [] -> Bool
   :d "Runs all task recovery unit tests."
-  (and (test-checkpoint-integrity-validation)
-       (and (test-extract-handoff-state)
-            (and (test-resume-action-dag)
-                 (and (test-recover-task-session-snapshot)
-                      (and (test-recovery-asn-serialization)
-                           (test-recovery-modular-aliases)))))))
+  (and (TestCheckpointIntegrityValidation)
+       (and (TestExtractHandoffState)
+            (and (TestResumeActionDag)
+                 (and (TestRecoverTaskSessionSnapshot)
+                      (and (TestRecoveryAsnSerialization)
+                           (TestRecoveryModularAliases)))))))
 
 (run-tests)

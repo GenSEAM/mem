@@ -29,7 +29,6 @@
       clean-dead-socket-record
       is-path-safe?
       extract-op-arg
-      DaemonProcSession
       make-daemon-proc-session
       daemon-spawn-session
       daemon-spawn-session-timeout
@@ -53,7 +52,8 @@
       (wal :a w)
       (math :a m)
       (spool_search :a ss)
-      (asl-parser/balance :a bal)])
+      (asl-parser/balance :a bal)
+      (daemon_proc :a dp)])
 
 (dfs DaemonConfig
   (:f socket-path Str "Unix domain socket file path")
@@ -82,24 +82,13 @@
   (:f error-code (Option Str) "Standardized error code keyword")
   (:f reason (Option Str) "Failure explanation or diagnostic message"))
 
-(dfs DaemonProcSession
-  (:f id Str "Unique process session identifier")
-  (:f cmd Str "Process command binary or name")
-  (:f args (List Str) "Process command argument vector")
-  (:f state Str "Session lifecycle state: active, idle, or terminated")
-  (:f spool-lines (List Str) "Buffered standard output lines in FIFO order")
-  (:f exit-code (Option I64) "Termination exit status code if finished")
-  (:f idle-ms I64 "Milliseconds elapsed since last activity")
-  (:f timeout-ms I64 "Configured watchdog timeout ceiling in milliseconds")
-  (:f deadlock-detected Bool "True if session exceeded idle timeout threshold"))
-
 (dfs DaemonState
   (:f config DaemonConfig "Active daemon operational parameters")
   (:f indexed-files-count I64 "Total indexed source files in memory")
   (:f symbols-count I64 "Total tracked symbol records in AST graph")
   (:f dirty-buffers-count I64 "Count of unpersisted in-memory buffers")
   (:f buffers (List BufferRecord) "In-memory virtual buffers")
-  (:f sessions (List DaemonProcSession) "In-memory interactive process sessions")
+  (:f sessions (List dp/DaemonProcSession) "In-memory interactive process sessions")
   (:f is-ready Bool "True if snapshot is loaded and socket is listening"))
 
 (dfe StepStatus
@@ -521,256 +510,95 @@
     (str "(:batch-res :status \"" st-str "\" :items-count 1 :parallel true :results [\n"
          (format-batch-step step) "\n])")))
 
-(df make-daemon-proc-session [(id Str) (cmd Str) (args (List Str))] -> DaemonProcSession
-  :d "Constructs an active in-memory process session record with empty spool buffer."
-  (DaemonProcSession
-    :id id
-    :cmd cmd
-    :args args
-    :state "active"
-    :spool-lines (list)
-    :exit-code (none)
-    :idle-ms 0
-    :timeout-ms 900000
-    :deadlock-detected false))
+(df make-daemon-proc-session [(id Str) (cmd Str) (args (List Str))] -> dp/DaemonProcSession
+  :d "Delegates process session construction to daemon_proc."
+  (dp/make-daemon-proc-session id cmd args))
 
 (df daemon-spawn-session [(state DaemonState) (id Str) (cmd Str) (args (List Str))] -> DaemonState
   :d "Spawns and registers a new interactive process session in daemon state."
-  (let [(sess (make-daemon-proc-session id cmd args))
-        (cur (.-sessions state))
-        (next-sessions (list-append cur (list sess)))]
-    (DaemonState
-      :config (.-config state)
-      :indexed-files-count (.-indexed-files-count state)
-      :symbols-count (.-symbols-count state)
-      :dirty-buffers-count (.-dirty-buffers-count state)
-      :buffers (.-buffers state)
-      :sessions next-sessions
-      :is-ready (.-is-ready state))))
+  (DaemonState
+    :config (.-config state) :indexed-files-count (.-indexed-files-count state)
+    :symbols-count (.-symbols-count state) :dirty-buffers-count (.-dirty-buffers-count state)
+    :buffers (.-buffers state) :sessions (dp/session-spawn (.-sessions state) id cmd args)
+    :is-ready (.-is-ready state)))
 
 (df daemon-spawn-session-timeout [(state DaemonState) (id Str) (cmd Str) (args (List Str)) (timeout-ms I64)] -> DaemonState
   :d "Spawns a new interactive process session with custom watchdog timeout ceiling."
-  (let [(cap (if (<= timeout-ms 0) 10000 timeout-ms))
-        (sess (DaemonProcSession
-                :id id
-                :cmd cmd
-                :args args
-                :state "active"
-                :spool-lines (list)
-                :exit-code (none)
-                :idle-ms 0
-                :timeout-ms cap
-                :deadlock-detected false))
-        (cur (.-sessions state))
-        (next-sessions (list-append cur (list sess)))]
-    (DaemonState
-      :config (.-config state)
-      :indexed-files-count (.-indexed-files-count state)
-      :symbols-count (.-symbols-count state)
-      :dirty-buffers-count (.-dirty-buffers-count state)
-      :buffers (.-buffers state)
-      :sessions next-sessions
-      :is-ready (.-is-ready state))))
+  (DaemonState
+    :config (.-config state) :indexed-files-count (.-indexed-files-count state)
+    :symbols-count (.-symbols-count state) :dirty-buffers-count (.-dirty-buffers-count state)
+    :buffers (.-buffers state) :sessions (dp/session-spawn-timeout (.-sessions state) id cmd args timeout-ms)
+    :is-ready (.-is-ready state)))
 
 (df daemon-extend-session-timeout [(state DaemonState) (id Str) (extend-ms I64)] -> DaemonState
-  :d "Dynamically extends watchdog timeout ceiling on active session resetting idle timer."
-  (let [(next-sessions (map (fn [(s DaemonProcSession)] -> DaemonProcSession
-                              (if (= (.-id s) id)
-                                (DaemonProcSession
-                                  :id (.-id s)
-                                  :cmd (.-cmd s)
-                                  :args (.-args s)
-                                  :state (.-state s)
-                                  :spool-lines (.-spool-lines s)
-                                  :exit-code (.-exit-code s)
-                                  :idle-ms 0
-                                  :timeout-ms (+ (.-timeout-ms s) extend-ms)
-                                  :deadlock-detected false)
-                                s))
-                            (.-sessions state)))]
-    (DaemonState
-      :config (.-config state)
-      :indexed-files-count (.-indexed-files-count state)
-      :symbols-count (.-symbols-count state)
-      :dirty-buffers-count (.-dirty-buffers-count state)
-      :buffers (.-buffers state)
-      :sessions next-sessions
-      :is-ready (.-is-ready state))))
+  :d "Dynamically extends watchdog timeout ceiling on active session."
+  (DaemonState
+    :config (.-config state) :indexed-files-count (.-indexed-files-count state)
+    :symbols-count (.-symbols-count state) :dirty-buffers-count (.-dirty-buffers-count state)
+    :buffers (.-buffers state) :sessions (dp/session-extend-timeout (.-sessions state) id extend-ms)
+    :is-ready (.-is-ready state)))
 
 (df daemon-set-session-timeout [(state DaemonState) (id Str) (new-timeout-ms I64)] -> DaemonState
-  :d "Explicitly updates watchdog timeout ceiling on active session resetting idle timer."
-  (let [(next-sessions (map (fn [(s DaemonProcSession)] -> DaemonProcSession
-                              (if (= (.-id s) id)
-                                (DaemonProcSession
-                                  :id (.-id s)
-                                  :cmd (.-cmd s)
-                                  :args (.-args s)
-                                  :state (.-state s)
-                                  :spool-lines (.-spool-lines s)
-                                  :exit-code (.-exit-code s)
-                                  :idle-ms 0
-                                  :timeout-ms new-timeout-ms
-                                  :deadlock-detected false)
-                                s))
-                            (.-sessions state)))]
-    (DaemonState
-      :config (.-config state)
-      :indexed-files-count (.-indexed-files-count state)
-      :symbols-count (.-symbols-count state)
-      :dirty-buffers-count (.-dirty-buffers-count state)
-      :buffers (.-buffers state)
-      :sessions next-sessions
-      :is-ready (.-is-ready state))))
+  :d "Explicitly reconfigures watchdog timeout ceiling on active session."
+  (DaemonState
+    :config (.-config state) :indexed-files-count (.-indexed-files-count state)
+    :symbols-count (.-symbols-count state) :dirty-buffers-count (.-dirty-buffers-count state)
+    :buffers (.-buffers state) :sessions (dp/session-set-timeout (.-sessions state) id new-timeout-ms)
+    :is-ready (.-is-ready state)))
 
-(df daemon-session-check-timeout [(s DaemonProcSession)] -> DaemonProcSession
+(df daemon-session-check-timeout [(s dp/DaemonProcSession)] -> dp/DaemonProcSession
   :d "Audits session idle duration against configured timeout setting deadlock flag if breached."
-  (let [(cap (.-timeout-ms s))
-        (breached (if (<= cap 0) false (>= (.-idle-ms s) cap)))]
-    (DaemonProcSession
-      :id (.-id s)
-      :cmd (.-cmd s)
-      :args (.-args s)
-      :state (if breached "idle" (.-state s))
-      :spool-lines (.-spool-lines s)
-      :exit-code (.-exit-code s)
-      :idle-ms (.-idle-ms s)
-      :timeout-ms (.-timeout-ms s)
-      :deadlock-detected breached)))
+  (dp/daemon-session-check-timeout s))
 
-(df daemon-find-session [(state DaemonState) (id Str)] -> (Option DaemonProcSession)
-  :d "Retrieves a process session by unique session identifier."
-  (let [(matched (filter (fn [(s DaemonProcSession)] -> Bool
-                           (= (.-id s) id))
-                         (.-sessions state)))]
-    (list-head matched)))
+(df daemon-find-session [(state DaemonState) (id Str)] -> (Option dp/DaemonProcSession)
+  :d "Retrieves a process session by identifier."
+  (dp/session-find (.-sessions state) id))
 
 (df daemon-append-session-stdout [(state DaemonState) (id Str) (line Str)] -> DaemonState
-  :d "Appends standard output line to session spool and resets idle timer."
-  (let [(next-sessions (map (fn [(s DaemonProcSession)] -> DaemonProcSession
-                              (if (= (.-id s) id)
-                                (DaemonProcSession
-                                  :id (.-id s)
-                                  :cmd (.-cmd s)
-                                  :args (.-args s)
-                                  :state (.-state s)
-                                  :spool-lines (list-append (.-spool-lines s) (list line))
-                                  :exit-code (.-exit-code s)
-                                  :idle-ms 0
-                                  :timeout-ms (.-timeout-ms s)
-                                  :deadlock-detected false)
-                                s))
-                            (.-sessions state)))]
-    (DaemonState
-      :config (.-config state)
-      :indexed-files-count (.-indexed-files-count state)
-      :symbols-count (.-symbols-count state)
-      :dirty-buffers-count (.-dirty-buffers-count state)
-      :buffers (.-buffers state)
-      :sessions next-sessions
-      :is-ready (.-is-ready state))))
+  :d "Buffers standard output line to session ring buffer."
+  (DaemonState
+    :config (.-config state) :indexed-files-count (.-indexed-files-count state)
+    :symbols-count (.-symbols-count state) :dirty-buffers-count (.-dirty-buffers-count state)
+    :buffers (.-buffers state) :sessions (dp/session-append-stdout (.-sessions state) id line)
+    :is-ready (.-is-ready state)))
 
 (df daemon-input-session [(state DaemonState) (id Str) (input-data Str)] -> DaemonState
-  :d "Records streaming input injected into active process session resetting idle timer."
-  (let [(next-sessions (map (fn [(s DaemonProcSession)] -> DaemonProcSession
-                              (if (= (.-id s) id)
-                                (DaemonProcSession
-                                  :id (.-id s)
-                                  :cmd (.-cmd s)
-                                  :args (.-args s)
-                                  :state (.-state s)
-                                  :spool-lines (.-spool-lines s)
-                                  :exit-code (.-exit-code s)
-                                  :idle-ms 0
-                                  :timeout-ms (.-timeout-ms s)
-                                  :deadlock-detected false)
-                                s))
-                            (.-sessions state)))]
-    (DaemonState
-      :config (.-config state)
-      :indexed-files-count (.-indexed-files-count state)
-      :symbols-count (.-symbols-count state)
-      :dirty-buffers-count (.-dirty-buffers-count state)
-      :buffers (.-buffers state)
-      :sessions next-sessions
-      :is-ready (.-is-ready state))))
+  :d "Tracks stdin transmission resetting idle timer."
+  (DaemonState
+    :config (.-config state) :indexed-files-count (.-indexed-files-count state)
+    :symbols-count (.-symbols-count state) :dirty-buffers-count (.-dirty-buffers-count state)
+    :buffers (.-buffers state) :sessions (dp/session-input (.-sessions state) id input-data)
+    :is-ready (.-is-ready state)))
 
 (df daemon-terminate-session [(state DaemonState) (id Str) (exit-code I64)] -> DaemonState
-  :d "Marks an interactive process session as terminated with exit return code."
-  (let [(next-sessions (map (fn [(s DaemonProcSession)] -> DaemonProcSession
-                              (if (= (.-id s) id)
-                                (DaemonProcSession
-                                  :id (.-id s)
-                                  :cmd (.-cmd s)
-                                  :args (.-args s)
-                                  :state "terminated"
-                                  :spool-lines (.-spool-lines s)
-                                  :exit-code (some exit-code)
-                                  :idle-ms (.-idle-ms s)
-                                  :timeout-ms (.-timeout-ms s)
-                                  :deadlock-detected false)
-                                s))
-                            (.-sessions state)))]
-    (DaemonState
-      :config (.-config state)
-      :indexed-files-count (.-indexed-files-count state)
-      :symbols-count (.-symbols-count state)
-      :dirty-buffers-count (.-dirty-buffers-count state)
-      :buffers (.-buffers state)
-      :sessions next-sessions
-      :is-ready (.-is-ready state))))
+  :d "Transitions process session to terminated state."
+  (DaemonState
+    :config (.-config state) :indexed-files-count (.-indexed-files-count state)
+    :symbols-count (.-symbols-count state) :dirty-buffers-count (.-dirty-buffers-count state)
+    :buffers (.-buffers state) :sessions (dp/session-terminate (.-sessions state) id exit-code)
+    :is-ready (.-is-ready state)))
 
 (df daemon-active-sessions-count [(state DaemonState)] -> I64
   :d "Returns count of currently active interactive process sessions."
-  (list-length (filter (fn [(s DaemonProcSession)] -> Bool
-                         (= (.-state s) "active"))
-                       (.-sessions state))))
+  (dp/session-active-count (.-sessions state)))
 
 (df daemon-session-skeleton [(state DaemonState) (id Str)] -> Str
   :d "Extracts structural output skeleton and error coordinates from session spool in memory."
-  (let [(sess-opt (daemon-find-session state id))]
+  (let [(sess-opt (dp/session-find (.-sessions state) id))]
     (if (option-is-none? sess-opt)
       ":res (:proc-skeleton :id \"unknown\" :total-lines 0 :errors 0 :summary \"Session not found\")"
-      (let [(sess (option-unwrap sess-opt))
-            (lines (.-spool-lines sess))
-            (total (list-length lines))
-            (err-lines (filter (fn [(l Str)] -> Bool
-                                 (or (string-contains? l "error")
-                                 (or (string-contains? l "Error")
-                                 (or (string-contains? l "fatal")
-                                     (string-contains? l "failed")))))
-                               lines))
-            (err-cnt (list-length err-lines))]
-        (str ":res (:proc-skeleton :id \"" id "\" :total-lines " (string-from-int64 total) " :errors " (string-from-int64 err-cnt) " :summary \"Lines: " (string-from-int64 total) ", Errors: " (string-from-int64 err-cnt) "\")")))))
+      (dp/session-skeleton (option-unwrap sess-opt)))))
 
 (df daemon-session-read-slice [(state DaemonState) (id Str) (start-line I64) (end-line I64)] -> Str
   :d "Extracts narrow line slice from process session spool without dumping whole buffer."
-  (let [(sess-opt (daemon-find-session state id))]
+  (let [(sess-opt (dp/session-find (.-sessions state) id))]
     (if (option-is-none? sess-opt)
       ":res (:proc-slice :id \"unknown\" :start 0 :end 0 :count 0 :lines 0)"
-      (let [(sess (option-unwrap sess-opt))
-            (all-lines (.-spool-lines sess))
-            (total (list-length all-lines))
-            (s-idx (if (< start-line 1) 0 (- start-line 1)))
-            (e-idx (if (> end-line total) total end-line))
-            (sliced (if (>= s-idx e-idx)
-                      (list)
-                      (option-or (list-slice all-lines s-idx e-idx) (list))))
-            (cnt (list-length sliced))]
-        (str ":res (:proc-slice :id \"" id "\" :start " (string-from-int64 start-line) " :end " (string-from-int64 e-idx) " :count " (string-from-int64 cnt) " :lines " (string-from-int64 cnt) ")")))))
+      (dp/session-read-slice (option-unwrap sess-opt) start-line end-line))))
 
 (df daemon-session-find-bm25 [(state DaemonState) (id Str) (query-str Str) (top-k I64)] -> Str
-  :d "Executes sub-millisecond in-memory Okapi BM25 ranked query over process session spool."
-  (let [(sess-opt (daemon-find-session state id))]
+  :d "Executes sub-millisecond in-memory Okapi BM25 query over session spool."
+  (let [(sess-opt (dp/session-find (.-sessions state) id))]
     (if (option-is-none? sess-opt)
       ":res (:proc-matches :id \"unknown\" :query \"\" :total 0)"
-      (let [(sess (option-unwrap sess-opt))
-            (lines (.-spool-lines sess))
-            (k (if (> top-k 0) top-k 5))
-            (index (ss/spool-index-lines lines))
-            (matches (ss/spool-search-index index lines query-str k))
-            (cnt (list-length matches))]
-        (str ":res (:proc-matches :id \"" id "\" :query \"" query-str "\" :total " (string-from-int64 cnt) ")")))))
-
-
-
-
+      (dp/session-find-bm25 (option-unwrap sess-opt) query-str top-k))))

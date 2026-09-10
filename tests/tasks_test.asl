@@ -12,8 +12,12 @@
       test-task-in-flight-handoff-and-steps
       test-task-holistic-asn-formatting
       test-task-session-leases-and-recovery
+      test-post-action-queue-lifecycle
+      test-gap-task-construction-and-dimensions
+      test-cybernetic-task-schema-extensions
       run-tests]
-  :i [(tasks :a t)])
+  :i [(tasks :a t)
+      (tasks_store :a ts)])
 
 (df test-task-construction-and-accessors [] -> Bool
   :d "Verifies legacy TaskRecord construction and accessor fields."
@@ -343,6 +347,102 @@
           (assert (string-contains? asn ":lease-expires-at 12000") "Serialized task contains lease-expires-at")
           true)))))
 
+(df test-post-action-queue-lifecycle [] -> Bool
+  :d "Verifies PostAction construction, enqueueing, ASN formatting, and queue draining lifecycle."
+  (let [(act1 (ts/make-post-action "post-426-01" "completed" "review" "phase-426" "Review model calibration receipts" "payload-calib-data"))
+        (act2 (ts/make-post-action "post-426-02" "completed" "followup-plan" "phase-427" "Plan browser gallery deployment" "payload-gallery-spec"))
+        (q0 (ts/make-post-action-queue "consequent-planning-queue"))
+        (q1 (ts/post-action-enqueue q0 act1))
+        (q2 (ts/post-action-enqueue q1 act2))]
+    (assert (= (.-queue-id q0) "consequent-planning-queue") "Queue ID matches")
+    (assert (= (list-length (.-actions q0)) 0) "Initial queue is empty")
+    (assert (= (list-length (.-actions q1)) 1) "Queue has 1 action after first enqueue")
+    (assert (= (list-length (.-actions q2)) 2) "Queue has 2 actions after second enqueue")
+    (assert (= (.-action-id act1) "post-426-01") "Action ID matches")
+    (assert (= (.-trigger-state act1) "completed") "Trigger state matches")
+    (assert (= (.-kind act1) "review") "Kind matches")
+    (assert (= (.-target-phase act1) "phase-426") "Target phase matches")
+    (let [(act-asn (ts/format-post-action-asn act1))]
+      (assert (string-contains? act-asn "(:post-action") "Serialized ASN contains :post-action tag")
+      (assert (string-contains? act-asn ":id \"post-426-01\"") "Serialized ASN contains action ID")
+      (assert (string-contains? act-asn ":trigger \"completed\"") "Serialized ASN contains trigger state")
+      (assert (string-contains? act-asn ":kind \"review\"") "Serialized ASN contains kind")
+      (let [(q-drained (ts/post-action-drain q2))]
+        (assert (= (list-length (.-actions q-drained)) 0) "Actions list is empty after drain")
+        (assert (= (.-processed-count q-drained) 2) "Processed count advances to 2 after drain")
+        true))))
+
+(df test-gap-task-construction-and-dimensions [] -> Bool
+  :d "Verifies first-class GAP task construction, cybernetic dimensions, and canonical ASN serialization."
+  (let [(gap (t/make-gap-task
+               "gap-governance-01"
+               "phase-403"
+               "Monolithic GAPS Contention"
+               "governance"
+               "high"
+               1773285000
+               (list "mem/src/tasks.asl")
+               "asl test mem/tests/tasks_test.asl"
+               "c-0001"
+               "m"
+               "medium"
+               "Single monolithic file causes multi-agent concurrent write collisions"
+               (list "Lock contention" "Merge conflicts")
+               (list "Requires schema migration across task runners")))]
+    (assert (= (.-id gap) "gap-governance-01") "Gap id matches")
+    (assert (= (.-kind gap) "gap") "Gap entity kind must be gap")
+    (assert (= (.-effort gap) "m") "Effort must be m")
+    (assert (= (.-risk gap) "medium") "Risk must be medium")
+    (assert (= (.-root-cause gap) "Single monolithic file causes multi-agent concurrent write collisions") "Root cause matches")
+    (assert (= (list-length (.-consequences gap)) 2) "Consequences count must be 2")
+    (assert (= (list-length (.-drawbacks gap)) 1) "Drawbacks count must be 1")
+    (assert (= (.-state gap) "queued") "Initial state is queued")
+    (let [(gap-asn (t/task-format-asn gap))]
+      (assert (string-contains? gap-asn ":kind :gap") "ASN formatting includes :kind :gap")
+      (assert (string-contains? gap-asn ":effort :m") "ASN formatting includes :effort :m")
+      (assert (string-contains? gap-asn ":risk :medium") "ASN formatting includes :risk :medium")
+      (assert (string-contains? gap-asn ":root-cause") "ASN formatting includes root cause")
+      (assert (string-contains? gap-asn "Single monolithic file") "ASN contains root cause string")
+      true)))
+
+(df test-cybernetic-task-schema-extensions [] -> Bool
+  :d "Verifies cybernetic task schema extensions, lifecycle state transitions, and anti-collision properties."
+  (let [(ct (t/make-cybernetic-task
+              "task-gov-02"
+              "phase-403"
+              "Cybernetic Task Protocol"
+              "governance"
+              "governance"
+              "queued"
+              "urgent"
+              1773285000
+              (list "mem/src/tasks_store.asl")
+              (list)
+              "asl check"
+              "d-0054"
+              "s"
+              "critical"
+              "Schema deficiency"
+              (list "Context bloat")
+              (list "Backwards compatibility burden")))
+        (t-disjoint (t/make-task "t-dis" "p1" "Disjoint" "main" "queued" "low" 100
+                                 (list "harness/src/a.asl") (list) "gate" "why"))]
+    (assert (= (.-effort ct) "s") "Cybernetic task effort is s")
+    (assert (= (.-risk ct) "critical") "Cybernetic task risk is critical")
+    (assert (not (t/task-owns-intersect? ct t-disjoint)) "Cybernetic task respects file boundary anti-collision")
+    (let [(claimed (t/task-claim ct 1773286000))]
+      (assert (= (.-state claimed) "claimed") "Claim transitions state")
+      (assert (= (.-effort claimed) "s") "Claim preserves effort dimension")
+      (assert (= (.-risk claimed) "critical") "Claim preserves risk dimension")
+      (let [(started (t/task-start claimed 1773287000))]
+        (assert (= (.-state started) "in-progress") "Start transitions state")
+        (assert (= (.-effort started) "s") "Start preserves effort dimension")
+        (let [(settled (t/task-complete started "(:receipt :exit 0 :asserts 5)" 1773288000))]
+          (assert (= (.-state settled) "completed") "Complete transitions state")
+          (assert (= (.-effort settled) "s") "Complete preserves effort dimension")
+          (assert (= (list-length (.-receipts settled)) 1) "Attached receipt present")
+          true)))))
+
 (df run-tests [] -> Bool
   :d "Executes complete unit test suite for asl-mem/tasks."
   (do
@@ -358,5 +458,8 @@
     (assert (test-task-in-flight-handoff-and-steps) "test-task-in-flight-handoff-and-steps failed")
     (assert (test-task-holistic-asn-formatting) "test-task-holistic-asn-formatting failed")
     (assert (test-task-session-leases-and-recovery) "test-task-session-leases-and-recovery failed")
-    (println "PASS (asl-mem/tasks: all 85 assertions passed cleanly across legacy and holistic task protocols)")
+    (assert (test-post-action-queue-lifecycle) "test-post-action-queue-lifecycle failed")
+    (assert (test-gap-task-construction-and-dimensions) "test-gap-task-construction-and-dimensions failed")
+    (assert (test-cybernetic-task-schema-extensions) "test-cybernetic-task-schema-extensions failed")
+    (println "PASS (asl-mem/tasks: all assertions passed cleanly across legacy, holistic, cybernetic, and post-action task protocols)")
     true))

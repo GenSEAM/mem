@@ -1,16 +1,16 @@
 (module asl-mem/tests/task-lease-test
   :d "Unit verification suite for agent session lease heartbeat, timeout, and stealing engine."
-  :x [test-lease-make
-      test-lease-renew-heartbeat
-      test-lease-expiration-predicate
-      test-lease-stealing-active-rejected
-      test-lease-stealing-expired-success
-      test-lease-asn-serialization
-      test-lease-modular-aliases
+  :x [TestLeaseMake
+      TestLeaseRenewHeartbeat
+      TestLeaseExpirationPredicate
+      TestLeaseStealingActiveRejected
+      TestLeaseStealingExpiredSuccess
+      TestLeaseAsnSerialization
+      TestLeaseModularAliases
       run-tests]
   :i [(task_lease :a lease)])
 
-(df test-lease-make [] -> Bool
+(df TestLeaseMake [] -> Bool
   :d "Verifies initial session lease creation and field invariants."
   (let [(l (lease/make-session-lease "task-397-01" "sess-alpha" "implementer" 5000 10000))]
     (assert (= (.-task-id l) "task-397-01") "Task id must match")
@@ -25,7 +25,7 @@
     (assert (not (lease/is-lease-expired? l 14999)) "Lease must not be expired before TTL")
     true))
 
-(df test-lease-renew-heartbeat [] -> Bool
+(df TestLeaseRenewHeartbeat [] -> Bool
   :d "Verifies heartbeat renewal increments counter and extends expiration."
   (let [(l0 (lease/make-session-lease "task-397-01" "sess-alpha" "implementer" 5000 10000))
         (l1 (lease/renew-session-lease l0 12000))
@@ -40,7 +40,7 @@
     (assert (= (.-session-id l2) "sess-alpha") "Session ID must be preserved across renewals")
     true))
 
-(df test-lease-expiration-predicate [] -> Bool
+(df TestLeaseExpirationPredicate [] -> Bool
   :d "Verifies expiration predicate boundaries before, at, and after TTL deadline."
   (let [(l (lease/make-session-lease "task-397-01" "sess-alpha" "implementer" 3000 1000))]
     (assert (not (lease/is-lease-expired? l 999)) "Lease is not expired before creation")
@@ -50,7 +50,7 @@
     (assert (lease/is-lease-expired? l 5000) "Lease is expired well past deadline 5000")
     true))
 
-(df test-lease-stealing-active-rejected [] -> Bool
+(df TestLeaseStealingActiveRejected [] -> Bool
   :d "Verifies active non-expired lease cannot be stolen by replacement agent."
   (let [(l0 (lease/make-session-lease "task-397-01" "sess-alpha" "implementer" 5000 10000))
         (attempt (lease/steal-expired-lease l0 "sess-beta" "implementer" 6000 12000))]
@@ -60,7 +60,7 @@
     (assert (= (.-heartbeat-count attempt) 0) "Heartbeat count must remain unchanged on rejected theft")
     true))
 
-(df test-lease-stealing-expired-success [] -> Bool
+(df TestLeaseStealingExpiredSuccess [] -> Bool
   :d "Verifies expired lease is deterministically reclaimed by replacement agent."
   (let [(l0 (lease/make-session-lease "task-397-01" "sess-alpha" "implementer" 5000 10000))
         (l-renewed (lease/renew-session-lease l0 11000))
@@ -76,7 +76,7 @@
     (assert (not (lease/is-lease-expired? stolen 16500)) "Stolen lease must be active at acquisition")
     true))
 
-(df test-lease-asn-serialization [] -> Bool
+(df TestLeaseAsnSerialization [] -> Bool
   :d "Verifies ASN serialization format matches machine specification."
   (let [(l (lease/make-session-lease "task-397-01" "sess-alpha" "implementer" 5000 10000))
         (asn-str (lease/format-lease-asn l))]
@@ -90,7 +90,7 @@
     (assert (string-contains? asn-str ":heartbeat-count 0") "Serialized output must contain heartbeat-count")
     true))
 
-(df test-lease-modular-aliases [] -> Bool
+(df TestLeaseModularAliases [] -> Bool
   :d "Verifies 1-to-2 token modular aliases execute identical semantics."
   (let [(l0 (lease/make "task-397-01" "sess-mod" "scout" 4000 20000))
         (l1 (lease/renew l0 21000))
@@ -108,12 +108,12 @@
 
 (df run-tests [] -> Bool
   :d "Runs all task session lease unit tests."
-  (and (test-lease-make)
-       (and (test-lease-renew-heartbeat)
-            (and (test-lease-expiration-predicate)
-                 (and (test-lease-stealing-active-rejected)
-                      (and (test-lease-stealing-expired-success)
-                           (and (test-lease-asn-serialization)
-                                (test-lease-modular-aliases))))))))
+  (and (TestLeaseMake)
+       (and (TestLeaseRenewHeartbeat)
+            (and (TestLeaseExpirationPredicate)
+                 (and (TestLeaseStealingActiveRejected)
+                      (and (TestLeaseStealingExpiredSuccess)
+                           (and (TestLeaseAsnSerialization)
+                                (TestLeaseModularAliases))))))))
 
 (run-tests)

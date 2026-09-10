@@ -451,6 +451,18 @@
     (:sym :name "TaskRecord" :kind :type :tokens 1)
     (:sym :name "AnticipatedRisk" :kind :type :tokens 1)
     (:sym :name "TaskTolerance" :kind :type :tokens 1)
+    (:sym :name "PostAction" :kind :type :tokens 1)
+    (:sym :name "PostActionQueue" :kind :type :tokens 1)
+    (:sym :name "make-post-action" :kind :fn :tokens 2
+          :rationale "Constructs a PostAction follow-up specification")
+    (:sym :name "make-post-action-queue" :kind :fn :tokens 2
+          :rationale "Constructs an empty PostActionQueue for consequent task review")
+    (:sym :name "post-action-enqueue" :kind :fn :tokens 2
+          :rationale "Appends a new post-action to the queue")
+    (:sym :name "post-action-drain" :kind :fn :tokens 2
+          :rationale "Clears active actions and advances the processed count")
+    (:sym :name "format-post-action-asn" :kind :fn :tokens 2
+          :rationale "Serializes a PostAction into canonical ASN representation")
     (:sym :name "make-anticipated-risk" :kind :fn :tokens 2
           :rationale "Constructs an AnticipatedRisk contingency specification")
     (:sym :name "make-task-tolerance" :kind :fn :tokens 2
@@ -472,6 +484,10 @@
     (:sym :name "make-holistic-task" :kind :fn :tokens 2
           :rationale "Constructs a fully-specified holistic task record")
     (:sym :name "make-task" :kind :fn :tokens 2)
+    (:sym :name "make-gap-task" :kind :fn :tokens 2
+          :rationale "Constructs a first-class GAP task record with cybernetic dimensions")
+    (:sym :name "make-cybernetic-task" :kind :fn :tokens 2
+          :rationale "Constructs a full cybernetic TaskRecord with explicit effort and risk dimensions")
     (:sym :name "task-owns-file?" :kind :fn :tokens 3
           :rationale "Checks if a task declared ownership over a specific file path")
     (:sym :name "task-owns-intersect?" :kind :fn :tokens 3
@@ -699,31 +715,31 @@
           :rationale "Validates structural integrity and bounds of task checkpoint state")
     (:sym :name "format-recovery-asn" :kind :fn :tokens 3
           :rationale "Serializes recovery snapshot into canonical machine ASN notation")
-    (:sym :name "test-lease-make" :kind :fn :tokens 3
+    (:sym :name "TestLeaseMake" :kind :fn :tokens 3
           :rationale "Verifies initial session lease creation and field invariants")
-    (:sym :name "test-lease-renew-heartbeat" :kind :fn :tokens 4
+    (:sym :name "TestLeaseRenewHeartbeat" :kind :fn :tokens 4
           :rationale "Verifies heartbeat renewal increments counter and extends expiration")
-    (:sym :name "test-lease-expiration-predicate" :kind :fn :tokens 4
+    (:sym :name "TestLeaseExpirationPredicate" :kind :fn :tokens 4
           :rationale "Verifies expiration predicate boundaries before at and after TTL deadline")
-    (:sym :name "test-lease-stealing-active-rejected" :kind :fn :tokens 5
+    (:sym :name "TestLeaseStealingActiveRejected" :kind :fn :tokens 5
           :rationale "Verifies active non-expired lease cannot be stolen by replacement agent")
-    (:sym :name "test-lease-stealing-expired-success" :kind :fn :tokens 5
+    (:sym :name "TestLeaseStealingExpiredSuccess" :kind :fn :tokens 5
           :rationale "Verifies expired lease is deterministically reclaimed by replacement agent")
-    (:sym :name "test-lease-asn-serialization" :kind :fn :tokens 4
+    (:sym :name "TestLeaseAsnSerialization" :kind :fn :tokens 4
           :rationale "Verifies ASN serialization format matches machine specification")
-    (:sym :name "test-lease-modular-aliases" :kind :fn :tokens 4
+    (:sym :name "TestLeaseModularAliases" :kind :fn :tokens 4
           :rationale "Verifies modular aliases execute identical semantics for session lease")
-    (:sym :name "test-checkpoint-integrity-validation" :kind :fn :tokens 4
+    (:sym :name "TestCheckpointIntegrityValidation" :kind :fn :tokens 4
           :rationale "Verifies boundary checks for checkpoint integrity under valid and invalid states")
-    (:sym :name "test-extract-handoff-state" :kind :fn :tokens 4
+    (:sym :name "TestExtractHandoffState" :kind :fn :tokens 4
           :rationale "Verifies extraction of handoff context from intact and corrupt tasks")
-    (:sym :name "test-resume-action-dag" :kind :fn :tokens 4
+    (:sym :name "TestResumeActionDag" :kind :fn :tokens 4
           :rationale "Verifies slicing of action DAG from arbitrary step index offsets")
-    (:sym :name "test-recover-task-session-snapshot" :kind :fn :tokens 5
+    (:sym :name "TestRecoverTaskSessionSnapshot" :kind :fn :tokens 5
           :rationale "Verifies recovery snapshot construction preserves previous session and step context")
-    (:sym :name "test-recovery-asn-serialization" :kind :fn :tokens 4
+    (:sym :name "TestRecoveryAsnSerialization" :kind :fn :tokens 4
           :rationale "Verifies ASN serialization format for recovery snapshot")
-    (:sym :name "test-recovery-modular-aliases" :kind :fn :tokens 4
+    (:sym :name "TestRecoveryModularAliases" :kind :fn :tokens 4
           :rationale "Verifies modular aliases execute identical semantics for task recovery")
   ]
 )

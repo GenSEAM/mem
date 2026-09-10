@@ -1,18 +1,28 @@
 (module asl-mem/vfs-fork
   :d "In-memory speculative VFS branching, snapshot forking, and transaction commit/abort engine"
-  :x [VFSBranch
+  :x [CompensatingAction
+      VFSBranch
       fork-vfs-branch
       write-branch-buffer
+      register-compensation
       commit-branch!
       abort-branch
       branch-diff]
   :i [(vfs :a v)])
+
+(dfs CompensatingAction
+  (:f action-id Str "Unique compensating action identifier")
+  (:f kind Str "Resource kind: process, socket, lock, or vfs")
+  (:f target Str "Target resource descriptor e.g. pid:1234")
+  (:f handler Str "Executable reverse compensation command or expression")
+  (:f registered-at-ms I64 "Epoch timestamp of registration"))
 
 (dfs VFSBranch
   (:f branch-id Str "Unique speculative branch identifier")
   (:f parent-id Str "Parent snapshot or registry identifier e.g. root")
   (:f created-at-ms I64 "Epoch millisecond timestamp of branch creation")
   (:f buffers (List v/VFSBuffer) "List of isolated speculative VFS buffers")
+  (:f compensations (List CompensatingAction) "List of registered reverse sagas")
   (:f status Str "Lifecycle status of branch: active, committed, or aborted"))
 
 (df find-branch-buffer [(buffers (List v/VFSBuffer)) (target-path Str)] -> (Option v/VFSBuffer)
@@ -57,7 +67,20 @@
       :parent-id "root"
       :created-at-ms 1725793200000
       :buffers branch-buffers
+      :compensations (list)
       :status "active")))
+
+(df register-compensation [(branch VFSBranch) (action CompensatingAction)] -> VFSBranch
+  :d "Registers a compensating reverse saga action to be triggered if the branch is aborted."
+  (if (!= (.-status branch) "active")
+    branch
+    (VFSBranch
+      :branch-id (.-branch-id branch)
+      :parent-id (.-parent-id branch)
+      :created-at-ms (.-created-at-ms branch)
+      :buffers (.-buffers branch)
+      :compensations (list-append (.-compensations branch) (list action))
+      :status (.-status branch))))
 
 (df write-branch-buffer [(branch VFSBranch) (path Str) (content Str)] -> VFSBranch
   :d "Stages content mutations into a speculative branch buffer overlay without mutating root registry."
@@ -96,6 +119,7 @@
         :parent-id (.-parent-id branch)
         :created-at-ms (.-created-at-ms branch)
         :buffers updated-buffers
+        :compensations (.-compensations branch)
         :status (.-status branch)))))
 
 (df commit-branch! [(branch VFSBranch) (registry v/VFSRegistry)] -> v/VFSRegistry
@@ -116,6 +140,7 @@
     :parent-id (.-parent-id branch)
     :created-at-ms (.-created-at-ms branch)
     :buffers (list)
+    :compensations (list)
     :status "aborted"))
 
 (df branch-diff [(branch VFSBranch) (path Str)] -> (Option Str)

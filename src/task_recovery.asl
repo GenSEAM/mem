@@ -11,7 +11,7 @@
       extract
       verify
       format]
-  :i [(tasks :a t)
+  :i [(tasks_store :a t)
       (asl-text/escape :a esc)])
 
 (dfs RecoverySnapshot

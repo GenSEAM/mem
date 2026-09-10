@@ -1,7 +1,7 @@
 (module asl-mem/daemon-proc-test
   :d "Pure ASL unit tests for resident memory daemon process session registry and spool buffers."
   :x [run-tests]
-  :i [(daemon :a d)])
+  :i [(daemon :a d) (daemon_proc :a dp)])
 
 (df test-session-spawn-and-find [] -> Bool
   :d "Verifies spawning and retrieving in-memory process sessions in daemon state."
@@ -137,9 +137,9 @@
     (assert (string-contains? res-tout ":extend-ms 20000") "Batch proc-timeout must reflect extension")
     (assert (string-contains? res-spawn-tout ":timeout-ms 30000") "Batch proc-spawn must reflect declared timeout")
     (assert (d/is-mutation-op? "proc-timeout") "proc-timeout must be recognized as mutation op")
-    (let [(idle-sess (d/DaemonProcSession :id "s-idle" :cmd "cat" :args (list) :state "active" :spool-lines (list) :exit-code (none) :idle-ms 12000 :timeout-ms 10000 :deadlock-detected false))
+    (let [(idle-sess (dp/DaemonProcSession :id "s-idle" :cmd "cat" :args (list) :state "active" :spool-lines (list) :exit-code (none) :idle-ms 12000 :timeout-ms 10000 :deadlock-detected false))
           (checked-idle (d/daemon-session-check-timeout idle-sess))
-          (safe-sess (d/DaemonProcSession :id "s-safe" :cmd "cat" :args (list) :state "active" :spool-lines (list) :exit-code (none) :idle-ms 8000 :timeout-ms 10000 :deadlock-detected false))
+          (safe-sess (dp/DaemonProcSession :id "s-safe" :cmd "cat" :args (list) :state "active" :spool-lines (list) :exit-code (none) :idle-ms 8000 :timeout-ms 10000 :deadlock-detected false))
           (checked-safe (d/daemon-session-check-timeout safe-sess))]
       (assert (.-deadlock-detected checked-idle) "Session exceeding timeout must flag deadlock")
       (assert (not (.-deadlock-detected checked-safe)) "Session within timeout must not flag deadlock"))
@@ -156,7 +156,7 @@
         (res-storage-eph (d/run-asl-batch "(:batch (:storage :mode \"ephemeral\"))" s0))
         (res-storage-path (d/run-asl-batch "(:batch (:storage :mode \"git-native\" :path \"/tmp/asl_mem\"))" s0))
         (d-storage (d/dispatch-rpc-op "storage" "custom-path" s0))
-        (daemon-sess (d/DaemonProcSession :id "s-daemon" :cmd "srv" :args (list) :state "active" :spool-lines (list) :exit-code (none) :idle-ms 3600000 :timeout-ms 0 :deadlock-detected false))
+        (daemon-sess (dp/DaemonProcSession :id "s-daemon" :cmd "srv" :args (list) :state "active" :spool-lines (list) :exit-code (none) :idle-ms 3600000 :timeout-ms 0 :deadlock-detected false))
         (checked-daemon (d/daemon-session-check-timeout daemon-sess))]
     (assert (string-contains? res-default ":timeout-ms 900000") "Default spawn must use 15m autonomous ceiling")
     (assert (string-contains? res-daemon ":daemon true") "Daemon spawn must flag daemon mode")

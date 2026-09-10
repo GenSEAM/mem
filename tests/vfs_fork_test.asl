@@ -5,6 +5,7 @@
       test-speculative-write-isolation
       test-commit-branch
       test-abort-branch
+      test-compensating-sagas
       test-branch-diff-and-multi-fork]
   :i [(vfs :a v)
       (vfs_fork :a vf)])
@@ -109,10 +110,26 @@
     (assert (string-contains? diff-b "+line 2 alternate") "Branch B diff must contain its own unique modification")
     true))
 
+(df test-compensating-sagas [] -> Bool
+  :d "Verifies registration of compensating actions and automated cleanup upon branch abort."
+  (let [(reg0 (v/vfs-init))
+        (branch0 (vf/fork-vfs-branch reg0 "saga-branch"))
+        (saga1 (vf/CompensatingAction :action-id "saga-kill-proc" :kind "process" :target "pid:4291" :handler "procSignal:SIGKILL" :registered-at-ms 1773410000000))
+        (saga2 (vf/CompensatingAction :action-id "saga-release-lock" :kind "lock" :target "flock:/tmp/engine.lock" :handler "unlink" :registered-at-ms 1773410001000))
+        (branch1 (vf/register-compensation branch0 saga1))
+        (branch2 (vf/register-compensation branch1 saga2))
+        (aborted (vf/abort-branch branch2))]
+    (assert (= (list-length (.-compensations branch0)) 0) "Initial branch must have 0 compensating actions")
+    (assert (= (list-length (.-compensations branch2)) 2) "Branch2 must have 2 registered compensating actions")
+    (assert (= (.-status aborted) "aborted") "Aborted branch status must be aborted")
+    (assert (= (list-length (.-compensations aborted)) 0) "Aborting branch must flush all compensating actions")
+    true))
+
 (df run-tests [] -> Bool
-  :d "Executes comprehensive speculative VFS branching test suite with 29 strict assertions."
+  :d "Executes comprehensive speculative VFS branching test suite with 33 strict assertions."
   (and (test-fork-vfs-branch)
        (and (test-speculative-write-isolation)
             (and (test-commit-branch)
                  (and (test-abort-branch)
-                      (test-branch-diff-and-multi-fork))))))
+                      (and (test-compensating-sagas)
+                           (test-branch-diff-and-multi-fork)))))))
