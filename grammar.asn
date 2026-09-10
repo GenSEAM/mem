@@ -741,6 +741,34 @@
           :rationale "Verifies ASN serialization format for recovery snapshot")
     (:sym :name "TestRecoveryModularAliases" :kind :fn :tokens 4
           :rationale "Verifies modular aliases execute identical semantics for task recovery")
+    (:sym :name "ASTCollisionRecord" :kind :type :tokens 3
+          :rationale "Structured record detailing AST collision location and branch divergences")
+    (:sym :name "HomoiconicForm" :kind :type :tokens 2
+          :rationale "First-class homoiconic S-expression form container")
+    (:sym :name "universal-ast-3way-merge" :kind :fn :tokens 4
+          :rationale "Generalized recursive 3-way AST structural merge operator")
+    (:sym :name "merge-sexp-lists" :kind :fn :tokens 3
+          :rationale "Set union list merger with deduplication for imports and dependencies")
+    (:sym :name "STMTransaction" :kind :type :tokens 2
+          :rationale "Software transactional memory session state container")
+    (:sym :name "STMFileSnapshot" :kind :type :tokens 3
+          :rationale "Per-file snapshot in transaction read-set or write-set")
+    (:sym :name "STMCommitResult" :kind :type :tokens 3
+          :rationale "Atomic multi-file commit outcome with reconciled and conflicted lists")
+    (:sym :name "stm-begin" :kind :fn :tokens 2
+          :rationale "Initializes isolated software transactional memory transaction")
+    (:sym :name "stm-write" :kind :fn :tokens 2
+          :rationale "Stages modification in transaction write-set")
+    (:sym :name "stm-validate-and-merge" :kind :fn :tokens 4
+          :rationale "Validates OCC invariants and merges dirty snapshots atomically")
+    (:sym :name "SpeculativeMutant" :kind :type :tokens 2
+          :rationale "In-memory AST mutation mutant record")
+    (:sym :name "SpeculativeFuzzResult" :kind :type :tokens 3
+          :rationale "Summary of mutation testing kill rate and coverage gaps")
+    (:sym :name "fork-mutant-cluster" :kind :fn :tokens 3
+          :rationale "Forks in-memory mutant cluster with discrete structural perturbations")
+    (:sym :name "evaluate-mutant-survival" :kind :fn :tokens 3
+          :rationale "Evaluates mutant survival against test suite execution")
   ]
 )
 
