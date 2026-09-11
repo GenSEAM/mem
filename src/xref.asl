@@ -66,9 +66,9 @@
         (new-fwd (map-set (.-forward g) source (list-add-unique fwd-list target)))
         (bwd-list (option-or (map-get (.-backward g) target) (list)))
         (new-bwd (map-set (.-backward g) target (list-add-unique bwd-list source)))
-        (is-dep (or (= relation "depends-on")
-                    (or (= relation "prerequisite")
-                        (= relation "requires"))))
+        (is-dep (= relation "depends-on"))
+        (is-prereq (or (= relation "prerequisite")
+                       (= relation "requires")))
         (is-prov (or (= relation "provenance")
                      (or (= relation "derives-from")
                          (or (= relation "justified-by")
@@ -78,7 +78,7 @@
                                           (or (string-starts-with? target "c:")
                                               (string-starts-with? target "task:")))))))))
         (p-list (option-or (map-get (.-prereq-map g) source) (list)))
-        (new-prereq (if is-dep
+        (new-prereq (if is-prereq
                         (map-set (.-prereq-map g) source (list-add-unique p-list target))
                         (.-prereq-map g)))
         (d-list (option-or (map-get (.-dep-map g) target) (list)))

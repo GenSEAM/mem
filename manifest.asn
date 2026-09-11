@@ -3,5 +3,5 @@
  :entry "src/engine.asl"
  :description "High-performance vector memory store and tiered context engine"
  :asl-first true
- :modules ["asl-mem/engine" "asl-mem/daemon" "asl-mem/roadmap" "asl-mem/projector" "asl-mem/tasks" "asl-mem/spool-search" "asl-mem/notes" "asl-mem/ast-merge" "asl-mem/stm" "asl-mem/speculative-fork" "asl-mem/visibility-scope"]
+ :modules ["asl-mem/engine" "asl-mem/roadmap" "asl-mem/projector" "asl-mem/tasks" "asl-mem/spool-search" "asl-mem/notes" "asl-mem/ast-merge" "asl-mem/stm" "asl-mem/speculative-fork" "asl-mem/visibility-scope"]
  :dependencies ["asl-parser" "asl-text"])

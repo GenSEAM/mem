@@ -237,85 +237,6 @@
           :rationale "Executes complete PCP to ASL-MEM migration unit test suite")
 
     ;; Daemon & Multi-Level Configuration Symbols
-    (:sym :name "DaemonConfig" :kind :type :tokens 1)
-    (:sym :name "DaemonState" :kind :type :tokens 1)
-    (:sym :name "BufferRecord" :kind :type :tokens 1)
-    (:sym :name "ConfigHierarchy" :kind :type :tokens 1)
-    (:sym :name "make-daemon-config" :kind :fn :tokens 3
-          :rationale "Constructs canonical daemon operational parameters")
-    (:sym :name "make-daemon-state" :kind :fn :tokens 3
-          :rationale "Initializes empty daemon state with specified configuration")
-    (:sym :name "untangle-step" :kind :fn :tokens 2)
-    (:sym :name "resolve-hierarchical-config" :kind :fn :tokens 3
-          :rationale "Multi-level configuration resolution across workspace and subproject tiers")
-    (:sym :name "dispatch-rpc-op" :kind :fn :tokens 3
-          :rationale "Dispatches incoming RPC requests across daemon subsystem handlers")
-    (:sym :name "evict-lru-buffers" :kind :fn :tokens 3
-          :rationale "LRU buffer eviction to bound memory ceiling in long-running sessions")
-    (:sym :name "vfs-create-buffer" :kind :fn :tokens 3
-          :rationale "Initializes in-memory virtual buffer record with dirty staging flag")
-    (:sym :name "vfs-delete-buffer" :kind :fn :tokens 3
-          :rationale "Creates tombstone buffer record representing a deleted file staged for disk sync")
-    (:sym :name "vfs-patch-buffer" :kind :fn :tokens 3
-          :rationale "Constructs patched virtual buffer record staging symbol replacement in memory")
-    (:sym :name "vfs-check-delimiter-balance" :kind :fn :tokens 4
-          :rationale "Validates structural delimiter balance delegating to canonical asl-parser balance")
-    (:sym :name "DaemonProcSession" :kind :type :tokens 3
-          :rationale "In-memory interactive process session record tracking streaming spool buffers")
-    (:sym :name "make-daemon-proc-session" :kind :fn :tokens 4
-          :rationale "Constructs an active in-memory process session record with empty spool buffer")
-    (:sym :name "daemon-spawn-session" :kind :fn :tokens 3
-          :rationale "Spawns and registers a new interactive process session in daemon state")
-    (:sym :name "daemon-spawn-session-timeout" :kind :fn :tokens 4
-          :rationale "Spawns a new interactive process session with custom watchdog timeout ceiling")
-    (:sym :name "daemon-extend-session-timeout" :kind :fn :tokens 4
-          :rationale "Dynamically extends watchdog timeout ceiling on active session resetting idle timer")
-    (:sym :name "daemon-set-session-timeout" :kind :fn :tokens 4
-          :rationale "Explicitly updates watchdog timeout ceiling on active session resetting idle timer")
-    (:sym :name "daemon-session-check-timeout" :kind :fn :tokens 4
-          :rationale "Audits session idle duration against configured timeout setting deadlock flag if breached")
-    (:sym :name "daemon-find-session" :kind :fn :tokens 3
-          :rationale "Retrieves a process session by unique session identifier")
-    (:sym :name "daemon-append-session-stdout" :kind :fn :tokens 4
-          :rationale "Appends standard output line to session spool and resets idle timer")
-    (:sym :name "daemon-input-session" :kind :fn :tokens 3
-          :rationale "Records streaming input injected into active process session resetting idle timer")
-    (:sym :name "daemon-terminate-session" :kind :fn :tokens 3
-          :rationale "Marks an interactive process session as terminated with exit return code")
-    (:sym :name "daemon-active-sessions-count" :kind :fn :tokens 4
-          :rationale "Returns count of currently active interactive process sessions")
-    (:sym :name "daemon-session-skeleton" :kind :fn :tokens 3
-          :rationale "Extracts structural output skeleton and error coordinates from session spool in memory")
-    (:sym :name "daemon-session-read-slice" :kind :fn :tokens 4
-          :rationale "Extracts narrow line slice from process session spool without dumping whole buffer")
-    (:sym :name "daemon-session-find-bm25" :kind :fn :tokens 4
-          :rationale "Executes sub-millisecond in-memory Okapi BM25 ranked query over process session spool")
-    (:sym :name "vfs-replace-all" :kind :fn :tokens 3
-          :rationale "Pure literal string replacement immune to regex and special token corruption")
-    (:sym :name "is-mutation-op?" :kind :fn :tokens 3
-          :rationale "Asserts whether an RPC operation mutates in-memory VFS buffers or files")
-    (:sym :name "is-polyglot-ext?" :kind :fn :tokens 3
-          :rationale "Asserts whether a file extension belongs to supported polyglot source formats")
-    (:sym :name "clean-dead-socket-record" :kind :fn :tokens 4
-          :rationale "Determines if dead socket and pid artifacts should be purged when daemon is inactive")
-    (:sym :name "is-path-safe?" :kind :fn :tokens 2)
-    (:sym :name "make-batch-step" :kind :fn :tokens 3
-          :rationale "Constructs an indexed batch step record for atomic execution in VFS")
-    (:sym :name "make-batch-result" :kind :fn :tokens 3
-          :rationale "Formats batch step execution result with duration and output payload")
-    (:sym :name "is-batch-failure?" :kind :fn :tokens 3
-          :rationale "Determines whether an individual batch execution step encountered an error")
-    (:sym :name "evaluate-batch-policy" :kind :fn :tokens 3
-          :rationale "Evaluates sequential or parallel execution strategy across batch items")
-    (:sym :name "StepStatus" :kind :type :tokens 1)
-    (:sym :name "BatchStep" :kind :type :tokens 1)
-    (:sym :name "BatchResult" :kind :type :tokens 1)
-    (:sym :name "execute-asl-batch-step" :kind :fn :tokens 3
-          :rationale "Executes a single batch step in pure ASL without external JS dependencies")
-    (:sym :name "format-batch-step" :kind :fn :tokens 3
-          :rationale "Formats BatchStep record to canonical S-expression string representation")
-    (:sym :name "run-asl-batch" :kind :fn :tokens 3
-          :rationale "Main daemon entrypoint processing S-expression batch transactions in pure ASL")
     (:sym :name "make-bm25-index" :kind :fn :tokens 3
           :rationale "Builds inverted term-document frequency index and average length")
     (:sym :name "sort-bm25-scores" :kind :fn :tokens 3
@@ -352,8 +273,6 @@
     (:sym :name "DualProjection" :kind :type :tokens 2)
     (:sym :name "AdrConsequence" :kind :type :tokens 2)
     (:sym :name "AdrRecord" :kind :type :tokens 2)
-    (:sym :name "BufferCasResult" :kind :type :tokens 3
-          :rationale "Result envelope for atomic buffer compare and swap operation")
     (:sym :name "make-item" :kind :fn :tokens 2)
     (:sym :name "make-phase" :kind :fn :tokens 2)
     (:sym :name "make-lease" :kind :fn :tokens 2)
@@ -382,8 +301,6 @@
           :rationale "Serializes AdrRecord into canonical machine ASN representation")
     (:sym :name "project-adr-md" :kind :fn :tokens 3
           :rationale "Renders AdrRecord into GitHub Flavored Markdown on-demand for human inspection")
-    (:sym :name "vfs-cas-update" :kind :fn :tokens 3
-          :rationale "Atomic compare and swap buffer update rejecting stale base versions")
     (:sym :name "Chunk" :kind :type :tokens 1)
     (:sym :name "MemoryChunk" :kind :type :tokens 1)
     (:sym :name "ChunkDAG" :kind :type :tokens 1)
