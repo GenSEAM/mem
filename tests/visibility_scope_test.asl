@@ -1,13 +1,13 @@
 (module asl-mem/tests/visibility-scope-test
   :d "Unit test suite verifying 3-tier workspace, worktree and session visibility scoping rules per ADR-0080"
-  :x [TestIsolatedSessionScope
-      TestWorkspaceLineageScope
-      TestSovereignSystemScope
-      TestGlobalAnchorPredicate
-      run-tests]
+  :x [run-tests
+      test-isolated-session-scope
+      test-workspace-lineage-scope
+      test-sovereign-system-scope
+      test-global-anchor-predicate]
   :i [(visibility_scope :a vs)])
 
-(df TestIsolatedSessionScope [] -> Bool
+(df test-isolated-session-scope [] -> Bool
   :d "Verifies that unanchored session outside workspace sees only own session and zero worktrees"
   (let [(ctx (vs/make-visibility-context
                "/tmp/scratch"
@@ -28,7 +28,7 @@
     (assert (= (head (.-visible-session-ids ctx)) "sess-unanchored") "Visible session must match active session ID")
     true))
 
-(df TestWorkspaceLineageScope [] -> Bool
+(df test-workspace-lineage-scope [] -> Bool
   :d "Verifies that workspace-anchored session sees workspace and child worktrees but not external repos"
   (let [(child-wts (list "/Users/purplelephant/projects/worktrees/asex-feat-1" "/Users/purplelephant/projects/worktrees/asex-hotfix"))
         (all-wts (list "/Users/purplelephant/projects/asex" "/Users/purplelephant/projects/worktrees/asex-feat-1" "/Users/purplelephant/projects/datahub-react" "/Users/purplelephant/projects/fronts/react"))
@@ -54,7 +54,7 @@
     (assert (= (list-length (.-visible-session-ids ctx)) 2) "Only active and child workspace sessions must be visible")
     true))
 
-(df TestSovereignSystemScope [] -> Bool
+(df test-sovereign-system-scope [] -> Bool
   :d "Verifies that navigating to folder containing global .asl unlocks full panoptic system visibility"
   (let [(all-wts (list "/Users/purplelephant/projects/asex" "/Users/purplelephant/projects/datahub-react" "/Users/purplelephant/projects/pcp"))
         (all-sessions (list "sess-1" "sess-2" "sess-3"))
@@ -77,7 +77,7 @@
     (assert (= (list-length (.-visible-session-ids ctx)) 3) "All 3 system sessions must be visible")
     true))
 
-(df TestGlobalAnchorPredicate [] -> Bool
+(df test-global-anchor-predicate [] -> Bool
   :d "Verifies is-global-asl-anchor? accurately distinguishes global anchor directory from child folders"
   (assert (vs/is-global-asl-anchor? "/Users/purplelephant" "/Users/purplelephant/.asl") "Exact parent of .asl must return true")
   (assert (vs/is-global-asl-anchor? "/Users/purplelephant/" "/Users/purplelephant/.asl/") "Trailing slash variants must return true")
@@ -87,8 +87,8 @@
 
 (df run-tests [] -> Bool
   :d "Executes all unit tests in visibility scope suite"
-  (let [(t1 (TestIsolatedSessionScope))
-        (t2 (TestWorkspaceLineageScope))
-        (t3 (TestSovereignSystemScope))
-        (t4 (TestGlobalAnchorPredicate))]
+  (let [(t1 (test-isolated-session-scope))
+        (t2 (test-workspace-lineage-scope))
+        (t3 (test-sovereign-system-scope))
+        (t4 (test-global-anchor-predicate))]
     (and t1 (and t2 (and t3 t4)))))
