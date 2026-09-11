@@ -785,6 +785,17 @@
           :rationale "Constructs clean passing consistency report")
     (:sym :name "audit-consistency-state" :kind :fn :tokens 3
           :rationale "Aggregates multi-dimensional consistency state into verdict")
+    (:sym :name "BrowserVfsStorage" :kind :type :tokens 1)
+    (:sym :name "OpfsPersistence" :kind :type :tokens 1)
+    (:sym :name "IndexedDbBackup" :kind :type :tokens 1)
+    (:sym :name "make-opfs-persistence" :kind :fn :tokens 3
+          :rationale "Constructs OpfsPersistence record bound to target directory")
+    (:sym :name "make-indexed-db-backup" :kind :fn :tokens 4
+          :rationale "Constructs IndexedDbBackup record for browser fallback storage")
+    (:sym :name "make-browser-vfs-storage" :kind :fn :tokens 4
+          :rationale "Initializes unified browser VFS storage with OPFS and IndexedDB persistence")
+    (:sym :name "sync-browser-vfs-storage" :kind :fn :tokens 4
+          :rationale "Flushes dirty in-memory buffers to browser persistent storage")
   ]
 )
 

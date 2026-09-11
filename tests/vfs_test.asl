@@ -5,7 +5,8 @@
       test-buffer-creation-and-read
       test-cas-content-addressing
       test-in-memory-overwrites
-      test-dirty-buffer-diffing]
+      test-dirty-buffer-diffing
+      test-browser-vfs-storage]
   :i [(vfs :a v)])
 
 (df test-vfs-init [] -> Bool
@@ -85,10 +86,30 @@
     (assert (list-contains? dirty-diff "+line 4: footer") "Diff must flag newly appended line with plus prefix")
     true))
 
+(df test-browser-vfs-storage [] -> Bool
+  :d "Verifies BrowserVfsStorage initialization, OPFS binding, IndexedDB backup, and sync flush"
+  (let [(reg (v/vfs-write (v/vfs-init) "src/app.asl" "(module app)"))
+        (storage0 (v/make-browser-vfs-storage reg))
+        (opfs (.-opfs storage0))
+        (idb (.-idb storage0))]
+    (assert (= (.-root-directory opfs) "/asl-vfs") "OPFS root directory must be /asl-vfs")
+    (assert (.-is-available opfs) "OPFS storage must be marked available")
+    (assert (= (.-sync-interval-ms opfs) 1000) "OPFS sync interval must be 1000ms")
+    (assert (= (.-database-name idb) "asl_storage") "IndexedDB database name must match")
+    (assert (= (.-store-name idb) "vfs_buffers") "IndexedDB store name must match")
+    (assert (.-is-active idb) "IndexedDB backup store must be active")
+    (let [(storage-dirty (v/BrowserVfsStorage :registry (.-registry storage0) :opfs opfs :idb idb :dirty-count 2))
+          (storage-synced (v/sync-browser-vfs-storage storage-dirty))]
+      (assert (= (.-dirty-count storage-synced) 0) "Dirty buffer count must be 0 after sync flush")
+      (assert (> (.-bytes-written (.-opfs storage-synced)) 0) "OPFS bytes written must increment after sync flush")
+      true)))
+
 (df run-tests [] -> Bool
-  :d "Executes comprehensive VFS and CAS source editor test suite with 26 strict assertions."
+  :d "Executes comprehensive VFS and CAS source editor test suite with 34 strict assertions."
   (and (test-vfs-init)
        (and (test-buffer-creation-and-read)
             (and (test-cas-content-addressing)
                  (and (test-in-memory-overwrites)
-                      (test-dirty-buffer-diffing))))))
+                      (and (test-dirty-buffer-diffing)
+                           (test-browser-vfs-storage)))))))
+

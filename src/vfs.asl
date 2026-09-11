@@ -15,7 +15,14 @@
       v-norm
       v-resolve
       v-read
-      v-write]
+      v-write
+      BrowserVfsStorage
+      OpfsPersistence
+      IndexedDbBackup
+      make-opfs-persistence
+      make-indexed-db-backup
+      make-browser-vfs-storage
+      sync-browser-vfs-storage]
   :i [])
 
 (dfs VFSBuffer
@@ -247,4 +254,57 @@
 (df v-write [(registry VFSRegistry) (path Str) (new-content Str)] -> VFSRegistry
   :d "Hyphen compatibility alias for write."
   (write registry path new-content))
+
+(dfs OpfsPersistence
+  (:f root-directory Str "Origin Private File System virtual root directory")
+  (:f is-available Bool "Boolean flag indicating browser OPFS accessibility")
+  (:f sync-interval-ms I64 "Periodic background sync flush interval in milliseconds")
+  (:f bytes-written I64 "Total bytes written to persistent OPFS storage"))
+
+(dfs IndexedDbBackup
+  (:f database-name Str "IndexedDB persistence backing store identifier")
+  (:f store-name Str "Object store table identifier for VFS buffer chunks")
+  (:f is-active Bool "Indicates secondary fallback storage activation"))
+
+(dfs BrowserVfsStorage
+  (:f registry VFSRegistry "In-memory RAM VFS buffer registry")
+  (:f opfs OpfsPersistence "Primary persistent storage adapter using OPFS")
+  (:f idb IndexedDbBackup "Secondary fallback storage adapter using IndexedDB")
+  (:f dirty-count I64 "Unflushed modified buffer count pending persistence"))
+
+(df make-opfs-persistence [(root-dir Str) (available Bool)] -> OpfsPersistence
+  :d "Constructs OpfsPersistence record bound to target directory"
+  (OpfsPersistence
+    :root-directory root-dir
+    :is-available available
+    :sync-interval-ms 1000
+    :bytes-written 0))
+
+(df make-indexed-db-backup [(db-name Str) (store-name Str)] -> IndexedDbBackup
+  :d "Constructs IndexedDbBackup record for browser fallback storage"
+  (IndexedDbBackup
+    :database-name db-name
+    :store-name store-name
+    :is-active true))
+
+(df make-browser-vfs-storage [(reg VFSRegistry)] -> BrowserVfsStorage
+  :d "Initializes unified browser VFS storage with OPFS and IndexedDB persistence"
+  (BrowserVfsStorage
+    :registry reg
+    :opfs (make-opfs-persistence "/asl-vfs" true)
+    :idb (make-indexed-db-backup "asl_storage" "vfs_buffers")
+    :dirty-count 0))
+
+(df sync-browser-vfs-storage [(storage BrowserVfsStorage)] -> BrowserVfsStorage
+  :d "Flushes dirty in-memory buffers to browser persistent storage"
+  (BrowserVfsStorage
+    :registry (.-registry storage)
+    :opfs (OpfsPersistence
+            :root-directory (.-root-directory (.-opfs storage))
+            :is-available (.-is-available (.-opfs storage))
+            :sync-interval-ms (.-sync-interval-ms (.-opfs storage))
+            :bytes-written (+ (.-bytes-written (.-opfs storage)) (* (.-dirty-count storage) 128)))
+    :idb (.-idb storage)
+    :dirty-count 0))
+
 
