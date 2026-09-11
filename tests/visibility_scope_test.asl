@@ -20,7 +20,7 @@
                (list "/Users/purplelephant/projects/asex" "/Users/purplelephant/projects/datahub-react")
                (list)
                (list "sess-unanchored" "sess-peer-1" "sess-peer-2")
-               (list "repo-asex" "repo-datahub-react")))]
+               (list "repo-genseam" "repo-datahub-react")))]
     (assert (= (.-tier ctx) (vs/tier-isolated-session)) "Tier must resolve to tier-isolated-session")
     (assert (= (list-length (.-visible-worktrees ctx)) 0) "Zero worktrees must be visible in isolated session")
     (assert (= (list-length (.-visible-repos ctx)) 0) "Zero repositories must be visible in isolated session")
@@ -30,8 +30,8 @@
 
 (df test-workspace-lineage-scope [] -> Bool
   :d "Verifies that workspace-anchored session sees workspace and child worktrees but not external repos"
-  (let [(child-wts (list "/Users/purplelephant/projects/worktrees/asex-feat-1" "/Users/purplelephant/projects/worktrees/asex-hotfix"))
-        (all-wts (list "/Users/purplelephant/projects/asex" "/Users/purplelephant/projects/worktrees/asex-feat-1" "/Users/purplelephant/projects/datahub-react" "/Users/purplelephant/projects/fronts/react"))
+  (let [(child-wts (list "/Users/purplelephant/projects/worktrees/genseam-feat-1" "/Users/purplelephant/projects/worktrees/genseam-hotfix"))
+        (all-wts (list "/Users/purplelephant/projects/asex" "/Users/purplelephant/projects/worktrees/genseam-feat-1" "/Users/purplelephant/projects/datahub-react" "/Users/purplelephant/projects/fronts/react"))
         (ws-sessions (list "sess-child-agent-1"))
         (all-sessions (list "sess-main" "sess-child-agent-1" "sess-datahub-agent"))
         (ctx (vs/make-visibility-context
@@ -40,17 +40,17 @@
                "/Users/purplelephant/.asl"
                true
                "/Users/purplelephant/projects/asex"
-               "repo-asex"
+               "repo-genseam"
                child-wts
                all-wts
                ws-sessions
                all-sessions
-               (list "repo-asex" "repo-datahub-react")))]
+               (list "repo-genseam" "repo-datahub-react")))]
     (assert (= (.-tier ctx) (vs/tier-workspace-lineage)) "Tier must resolve to tier-workspace-lineage")
     (assert (= (.-active-workspace-root ctx) "/Users/purplelephant/projects/asex") "Active workspace root must match current workspace")
     (assert (= (list-length (.-visible-worktrees ctx)) 3) "Visible worktrees must contain workspace root and both children")
     (assert (= (list-length (.-visible-repos ctx)) 1) "Only current repository must be visible")
-    (assert (= (head (.-visible-repos ctx)) "repo-asex") "Visible repository must be repo-asex")
+    (assert (= (head (.-visible-repos ctx)) "repo-genseam") "Visible repository must be repo-genseam")
     (assert (= (list-length (.-visible-session-ids ctx)) 2) "Only active and child workspace sessions must be visible")
     true))
 
@@ -58,7 +58,7 @@
   :d "Verifies that navigating to folder containing global .asl unlocks full panoptic system visibility"
   (let [(all-wts (list "/Users/purplelephant/projects/asex" "/Users/purplelephant/projects/datahub-react" "/Users/purplelephant/projects/pcp"))
         (all-sessions (list "sess-1" "sess-2" "sess-3"))
-        (all-repos (list "repo-asex" "repo-datahub-react" "repo-pcp"))
+        (all-repos (list "repo-genseam" "repo-datahub-react" "repo-pcp"))
         (ctx (vs/make-visibility-context
                "/Users/purplelephant"
                "sess-sovereign-admin"
