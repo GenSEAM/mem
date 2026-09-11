@@ -796,6 +796,19 @@
           :rationale "Initializes unified browser VFS storage with OPFS and IndexedDB persistence")
     (:sym :name "sync-browser-vfs-storage" :kind :fn :tokens 4
           :rationale "Flushes dirty in-memory buffers to browser persistent storage")
+    (:sym :name "VisibilityTier" :kind :type :tokens 1)
+    (:sym :name "VisibilityContext" :kind :type :tokens 1)
+    (:sym :name "make-visibility-context" :kind :fn :tokens 3
+          :rationale "Constructs a resolved VisibilityContext record from system topology")
+    (:sym :name "is-global-asl-anchor?" :kind :fn :tokens 4
+          :rationale "Returns true only if cwd directly contains the global .asl store directory")
+    (:sym :name "resolve-visibility-tier" :kind :fn :tokens 3
+          :rationale "Resolves the 3-tier visibility level from directory and workspace membership state")
+    (:sym :name "filter-visible-worktrees" :kind :fn :tokens 3
+          :rationale "Filters visible worktree paths according to resolved tier")
+    (:sym :name "filter-visible-sessions" :kind :fn :tokens 3
+          :rationale "Filters visible session IDs according to resolved tier")
+    (:sym :name "filter-visible-repos" :kind :fn :tokens 3
+          :rationale "Filters visible repository IDs according to resolved tier")
   ]
 )
-
