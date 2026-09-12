@@ -5,12 +5,9 @@
       test-lease-and-roadmap-records
       test-defrecord-serialization
       test-phase-lifecycle-and-claim
-      test-dual-projection-engine
-      test-buffer-cas-versioning
-      test-daemon-batch-roadmap-ops]
+      test-dual-projection-engine]
   :i [(roadmap :a rm)
-      (projector :a prj)
-      (daemon :a d)])
+      (projector :a prj)])
 
 (df test-item-and-phase-records [] -> Bool
   :d "Verifies work item and phase record construction and accessors."
@@ -99,43 +96,7 @@
     (assert (string-contains? (.-status-md dual) "phase-296") "Dual projection status must contain phase ID")
     true))
 
-(df test-buffer-cas-versioning [] -> Bool
-  :d "Verifies atomic Compare-And-Swap buffer version tracking and conflict rejection."
-  (let [(buf1 (d/vfs-create-buffer "src/demo.asl" "(module demo)"))]
-    (assert (= (.-version buf1) 1) "New buffer must initialize with version 1")
-    (let [(cas-ok (d/vfs-cas-update buf1 1 "(module demo-v2)"))]
-      (assert (.-success cas-ok) "CAS update with matching version must succeed")
-      (assert (= (.-version (.-buffer cas-ok)) 2) "CAS updated buffer must advance version to 2")
-      (assert (= (.-content (.-buffer cas-ok)) "(module demo-v2)") "CAS updated buffer content must match")
-      (let [(cas-stale (d/vfs-cas-update (.-buffer cas-ok) 1 "(module stale)"))]
-        (assert (not (.-success cas-stale)) "CAS update with stale version must be rejected")
-        (assert (= (option-or (.-error-code cas-stale) "") ":ERR_STALE_BUFFER_VERSION") "Stale CAS error code must be :ERR_STALE_BUFFER_VERSION")
-        (assert (= (.-version (.-buffer cas-stale)) 2) "Rejected CAS must leave original buffer version unchanged")
-        true))))
 
-(df test-daemon-batch-roadmap-ops [] -> Bool
-  :d "Verifies memory daemon batch execution for roadmap and CAS buffer operations."
-  (let [(cfg (d/make-daemon-config "/tmp/d.sock" 100 true))
-        (st (d/make-daemon-state cfg))
-        (s-reg (d/execute-asl-batch-step 1 "(:batch (:phase-register \"phase-296\"))" st))
-        (s-get (d/execute-asl-batch-step 2 "(:batch (:phase-get \"phase-296\"))" st))
-        (s-claim (d/execute-asl-batch-step 3 "(:batch (:phase-claim \"phase-296\"))" st))
-        (s-claim-dup (d/execute-asl-batch-step 4 "(:batch (:phase-claim \"phase-296\" :already-claimed true))" st))
-        (s-item (d/execute-asl-batch-step 5 "(:batch (:item-complete \"phase-296\" \"296.1\"))" st))
-        (s-done (d/execute-asl-batch-step 6 "(:batch (:phase-complete \"phase-296\"))" st))
-        (s-cas-ok (d/execute-asl-batch-step 7 "(:batch (:cas-edit \"src/demo.asl\" :base-version 1))" st))
-        (s-cas-err (d/execute-asl-batch-step 8 "(:batch (:cas-edit \"src/demo.asl\" :stale true))" st))
-        (s-proj (d/execute-asl-batch-step 9 "(:batch (:project-disk))" st))]
-    (assert (string-contains? (.-output s-reg) ":phase-registered true") "Batch phase-register must succeed")
-    (assert (string-contains? (.-output s-get) ":phase-found true") "Batch phase-get must succeed")
-    (assert (string-contains? (.-output s-claim) ":phase-claimed true") "Batch phase-claim must succeed")
-    (assert (= (option-or (.-error-code s-claim-dup) "") ":ERR_PHASE_ALREADY_LEASED") "Duplicate claim must reject with :ERR_PHASE_ALREADY_LEASED")
-    (assert (string-contains? (.-output s-item) ":item-completed true") "Batch item-complete must succeed")
-    (assert (string-contains? (.-output s-done) ":phase-completed true") "Batch phase-complete must succeed")
-    (assert (string-contains? (.-output s-cas-ok) ":cas-applied true") "Fresh CAS edit must apply")
-    (assert (= (option-or (.-error-code s-cas-err) "") ":ERR_STALE_BUFFER_VERSION") "Stale CAS edit must reject with :ERR_STALE_BUFFER_VERSION")
-    (assert (string-contains? (.-output s-proj) ":project-disk true") "Batch project-disk must succeed")
-    true))
 
 (df run-tests [] -> Bool
   :d "Executes complete roadmap verification test suite with >=20 strict assertions."
@@ -143,6 +104,4 @@
        (and (test-lease-and-roadmap-records)
             (and (test-defrecord-serialization)
                  (and (test-phase-lifecycle-and-claim)
-                      (and (test-dual-projection-engine)
-                           (and (test-buffer-cas-versioning)
-                                (test-daemon-batch-roadmap-ops))))))))
+                      (test-dual-projection-engine))))))

@@ -242,7 +242,7 @@
     (str "(:task\n  :id \"" (.-id task) "\"\n  :parentId \"" (.-parent-id task) "\"\n  :phase \"" (.-phase task)
          "\"\n  :title \"" (esc/escape-asn-str (.-title task)) "\"\n  :kind :" (.-kind task) "\n  :lane \"" (.-lane task)
          "\"\n  :state :" (.-state task) "\n  :priority :" (.-priority task) "\n  :effort :" (.-effort task) "\n  :risk :" (.-risk task)
-         "\n  :ownerRole \"" (.-owner-role task)
+         "\n  :ownerRole \"" (.-owner-role task) "\""
          (if (= (.-root-cause task) "") "" (str "\n  :rootCause \"" (esc/escape-asn-str (.-root-cause task)) "\""))
          (if (= (list-length (.-consequences task)) 0) "" (str "\n  :consequences " cons-str))
          (if (= (list-length (.-drawbacks task)) 0) "" (str "\n  :drawbacks " draw-str))

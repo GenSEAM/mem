@@ -160,7 +160,9 @@
     :acceptance-criteria (.-acceptance-criteria task) :step-index (.-step-index task)
     :action-dag (.-action-dag task) :handoff-context (.-handoff-context task)
     :receipts (list-append (.-receipts task) (list receipt))
-    :session-id (.-session-id task) :lease-expires-at (.-lease-expires-at task)))
+    :session-id (.-session-id task) :lease-expires-at (.-lease-expires-at task)
+    :effort (.-effort task) :risk (.-risk task) :root-cause (.-root-cause task)
+    :consequences (.-consequences task) :drawbacks (.-drawbacks task)))
 
 (df claim [(task ts/TaskRecord) (now-epoch I64)] -> ts/TaskRecord
   :d "1-to-2 token alias for task-claim."

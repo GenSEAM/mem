@@ -302,13 +302,13 @@
         (asn (t/task-format-holistic-asn ht))]
     (assert (string-contains? asn "(:task") "Must contain :task tag")
     (assert (string-contains? asn ":id \"task-holistic-99\"") "Must contain ID")
-    (assert (string-contains? asn ":parent-id \"task-holistic-parent\"") "Must contain parent-id")
+    (assert (string-contains? asn ":parentId \"task-holistic-parent\"") "Must contain parent-id")
     (assert (string-contains? asn ":kind :code-mutation") "Must contain kind")
-    (assert (string-contains? asn ":owner-role \"planner\"") "Must contain owner-role")
-    (assert (string-contains? asn ":target-symbols [\"ExportedFunc\"]") "Must contain target-symbols")
-    (assert (string-contains? asn ":related-symbols [\"DependentCaller\"]") "Must contain related-symbols")
-    (assert (string-contains? asn ":acceptance-criteria [\"criteria-1\" \"criteria-2\"]") "Must contain acceptance-criteria")
-    (assert (string-contains? asn ":action-dag [\"action-1\" \"action-2\"]") "Must contain action-dag")
+    (assert (string-contains? asn ":ownerRole \"planner\"") "Must contain owner-role")
+    (assert (string-contains? asn ":targetSymbols [\"ExportedFunc\"]") "Must contain target-symbols")
+    (assert (string-contains? asn ":relatedSymbols [\"DependentCaller\"]") "Must contain related-symbols")
+    (assert (string-contains? asn ":acceptanceCriteria [\"criteria-1\" \"criteria-2\"]") "Must contain acceptance-criteria")
+    (assert (string-contains? asn ":actionDag [\"action-1\" \"action-2\"]") "Must contain action-dag")
     true))
 
 (df test-task-session-leases-and-recovery [] -> Bool
@@ -343,8 +343,8 @@
         (assert (= (option-or (list-head (.-depends-on child)) "") "task-rec-1") "Spawned child depends on parent ID")
         (assert (= (.-session-id child) "") "Spawned child must be unassigned initially")
         (let [(asn (t/task-format-holistic-asn t-recovered))]
-          (assert (string-contains? asn ":session-id \"session-beta\"") "Serialized task contains session-id")
-          (assert (string-contains? asn ":lease-expires-at 12000") "Serialized task contains lease-expires-at")
+          (assert (string-contains? asn ":sessionId \"session-beta\"") "Serialized task contains session-id")
+          (assert (string-contains? asn ":leaseExpiresAt 12000") "Serialized task contains lease-expires-at")
           true)))))
 
 (df test-post-action-queue-lifecycle [] -> Bool
@@ -401,7 +401,7 @@
       (assert (string-contains? gap-asn ":kind :gap") "ASN formatting includes :kind :gap")
       (assert (string-contains? gap-asn ":effort :m") "ASN formatting includes :effort :m")
       (assert (string-contains? gap-asn ":risk :medium") "ASN formatting includes :risk :medium")
-      (assert (string-contains? gap-asn ":root-cause") "ASN formatting includes root cause")
+      (assert (string-contains? gap-asn ":rootCause") "ASN formatting includes root cause")
       (assert (string-contains? gap-asn "Single monolithic file") "ASN contains root cause string")
       true)))
 

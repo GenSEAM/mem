@@ -116,12 +116,12 @@
   (let [(rules-str
           (s/join " "
                   (map (fn [(r rec/AdrRule)] -> Str
-                         (s/concat "(:rule :code \"" (.-code r) "\" "
-                                   ":title \"" (.-title r) "\" "
-                                   ":why \"" (.-why r) "\" "
-                                   ":status \"" (.-status r) "\")"))
+                         (str "(:rule :code \"" (.-code r) "\" "
+                              ":title \"" (.-title r) "\" "
+                              ":why \"" (.-why r) "\" "
+                              ":status \"" (.-status r) "\")"))
                        (.-rules ledger))))]
-    (s/concat "(:asl-mem-ledger :rules [" rules-str "])")))
+    (str "(:asl-mem-ledger :rules [" rules-str "])")))
 
 (df migrate-pcp-constitution [(yaml-content Str)] -> PcpMigrationResult
   :d "Migrates legacy YAML/Markdown constitution into native ASL memory ledger."
@@ -154,7 +154,7 @@
 
 (df query-memory-shortcode [(ledger rec/RecordsLedger) (code Str)] -> (Option rec/AdrRule)
   :d "Fast indexed in-memory lookup for an architectural rule or law."
-  (rec/find-rule ledger code))
+  (rec/query-rule ledger code))
 
 (df benchmark-mem-latency [(ledger rec/RecordsLedger) (query Str)] -> I64
   :d "Measures retrieval latency in microseconds across 1,000 iterations."
