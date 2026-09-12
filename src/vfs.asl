@@ -7,6 +7,12 @@
       vfs-write
       vfs-cas-hash
       vfs-diff
+      vfs-cas-update
+      vfs-discard
+      vfs-flush
+      vfs-acquire-lease
+      vfs-release-lease
+      vfs-staged-write
       normalize-path
       norm
       resolve
@@ -34,7 +40,9 @@
   (:f base-hash Str "CAS hash of pristine or staged base version")
   (:f revision I64 "Monotonic revision counter")
   (:f dirty Bool "Boolean flag indicating uncommitted edits relative to base")
-  (:f loaded-at I64 "Millisecond timestamp when buffer was opened or created"))
+  (:f loaded-at I64 "Millisecond timestamp when buffer was opened or created")
+  (:f lease-holder Str "Current active lease holder writer ID or empty string")
+  (:f lease-expires-at I64 "Millisecond timestamp after which lease expires"))
 
 (dfs VFSRegistry
   (:f buffers (Map Str VFSBuffer) "Mapping from canonical virtual path to VFSBuffer")
@@ -150,7 +158,9 @@
                         :base-hash new-hash
                         :revision 1
                         :dirty false
-                        :loaded-at 0))]
+                        :loaded-at 0
+                        :lease-holder ""
+                        :lease-expires-at 0))]
          (VFSRegistry
            :buffers (map-set (.-buffers registry) norm new-buf)
            :active-paths (list-append (.-active-paths registry) (list norm))
@@ -167,11 +177,190 @@
                             :base-hash base-h
                             :revision (+ (.-revision prev) 1)
                             :dirty is-dirty
-                            :loaded-at (.-loaded-at prev)))]
+                            :loaded-at (.-loaded-at prev)
+                            :lease-holder (.-lease-holder prev)
+                            :lease-expires-at (.-lease-expires-at prev)))]
          (VFSRegistry
            :buffers (map-set (.-buffers registry) norm updated-buf)
            :active-paths (.-active-paths registry)
            :size (.-size registry)))))))
+
+(df vfs-cas-update [(registry VFSRegistry) (path Str) (expected-hash Str) (new-content Str)] -> (Result VFSRegistry Str)
+  :d "Conditionally updates buffer only if current CAS hash matches expected hash, rejecting conflicts."
+  (let [(norm (normalize-path path))]
+    (mt (map-get (.-buffers registry) norm)
+      ((none)
+       (if (and (!= expected-hash "") (!= expected-hash "0"))
+         (err "ERR_CAS_VERSION_CONFLICT")
+         (let [(new-hash (vfs-cas-hash new-content))
+               (new-buf (VFSBuffer
+                          :path norm
+                          :content new-content
+                          :base-content new-content
+                          :cas-hash new-hash
+                          :base-hash new-hash
+                          :revision 1
+                          :dirty false
+                          :loaded-at 0
+                          :lease-holder ""
+                          :lease-expires-at 0))]
+           (ok (VFSRegistry
+                 :buffers (map-set (.-buffers registry) norm new-buf)
+                 :active-paths (list-append (.-active-paths registry) (list norm))
+                 :size (+ (.-size registry) 1))))))
+      ((some prev)
+       (if (!= (.-cas-hash prev) expected-hash)
+         (err "ERR_CAS_VERSION_CONFLICT")
+         (let [(new-hash (vfs-cas-hash new-content))
+               (base-h (.-base-hash prev))
+               (base-c (.-base-content prev))
+               (is-dirty (!= new-hash base-h))
+               (updated-buf (VFSBuffer
+                              :path norm
+                              :content new-content
+                              :base-content base-c
+                              :cas-hash new-hash
+                              :base-hash base-h
+                              :revision (+ (.-revision prev) 1)
+                              :dirty is-dirty
+                              :loaded-at (.-loaded-at prev)
+                              :lease-holder (.-lease-holder prev)
+                              :lease-expires-at (.-lease-expires-at prev)))]
+           (ok (VFSRegistry
+                 :buffers (map-set (.-buffers registry) norm updated-buf)
+                 :active-paths (.-active-paths registry)
+                 :size (.-size registry)))))))))
+
+(df vfs-discard [(registry VFSRegistry) (path Str)] -> (Result VFSRegistry Str)
+  :d "Restores buffer content and cas-hash to pristine base state, clearing dirty flag; idempotent on clean buffers."
+  (let [(norm (normalize-path path))]
+    (mt (map-get (.-buffers registry) norm)
+      ((none)
+       (err "ERR_BUFFER_NOT_FOUND"))
+      ((some buf)
+       (if (not (.-dirty buf))
+         (ok registry)
+         (let [(restored-buf (VFSBuffer
+                               :path norm
+                               :content (.-base-content buf)
+                               :base-content (.-base-content buf)
+                               :cas-hash (.-base-hash buf)
+                               :base-hash (.-base-hash buf)
+                               :revision (+ (.-revision buf) 1)
+                               :dirty false
+                               :loaded-at (.-loaded-at buf)
+                               :lease-holder (.-lease-holder buf)
+                               :lease-expires-at (.-lease-expires-at buf)))]
+           (ok (VFSRegistry
+                 :buffers (map-set (.-buffers registry) norm restored-buf)
+                 :active-paths (.-active-paths registry)
+                 :size (.-size registry)))))))))
+
+(df vfs-flush [(registry VFSRegistry) (path Str) (expected-base-hash Str)] -> (Result VFSRegistry Str)
+  :d "Commits staged buffer edits into base version if base-hash matches expected value; rejects external changes."
+  (let [(norm (normalize-path path))]
+    (mt (map-get (.-buffers registry) norm)
+      ((none)
+       (err "ERR_BUFFER_NOT_FOUND"))
+      ((some buf)
+       (if (and (!= expected-base-hash "") (!= (.-base-hash buf) expected-base-hash))
+         (err "ERR_EXTERNAL_CHANGE_CONFLICT")
+         (let [(flushed-buf (VFSBuffer
+                              :path norm
+                              :content (.-content buf)
+                              :base-content (.-content buf)
+                              :cas-hash (.-cas-hash buf)
+                              :base-hash (.-cas-hash buf)
+                              :revision (+ (.-revision buf) 1)
+                              :dirty false
+                              :loaded-at (.-loaded-at buf)
+                              :lease-holder (.-lease-holder buf)
+                              :lease-expires-at (.-lease-expires-at buf)))]
+           (ok (VFSRegistry
+                 :buffers (map-set (.-buffers registry) norm flushed-buf)
+                 :active-paths (.-active-paths registry)
+                 :size (.-size registry)))))))))
+
+(df vfs-acquire-lease [(registry VFSRegistry) (path Str) (writer-id Str) (now-ts I64) (ttl-ms I64)] -> (Result VFSRegistry Str)
+  :d "Acquires exclusive write lease for target path; refuses second writer if active lease is held."
+  (let [(norm (normalize-path path))]
+    (mt (map-get (.-buffers registry) norm)
+      ((none)
+       (let [(empty-hash (vfs-cas-hash ""))
+             (new-buf (VFSBuffer
+                        :path norm
+                        :content ""
+                        :base-content ""
+                        :cas-hash empty-hash
+                        :base-hash empty-hash
+                        :revision 1
+                        :dirty false
+                        :loaded-at now-ts
+                        :lease-holder writer-id
+                        :lease-expires-at (+ now-ts ttl-ms)))]
+         (ok (VFSRegistry
+               :buffers (map-set (.-buffers registry) norm new-buf)
+               :active-paths (list-append (.-active-paths registry) (list norm))
+               :size (+ (.-size registry) 1)))))
+      ((some buf)
+       (if (and (!= (.-lease-holder buf) "")
+                (!= (.-lease-holder buf) writer-id)
+                (> (.-lease-expires-at buf) now-ts))
+         (err "ERR_LEASE_ACTIVE_CONFLICT")
+         (let [(updated-buf (VFSBuffer
+                              :path norm
+                              :content (.-content buf)
+                              :base-content (.-base-content buf)
+                              :cas-hash (.-cas-hash buf)
+                              :base-hash (.-base-hash buf)
+                              :revision (.-revision buf)
+                              :dirty (.-dirty buf)
+                              :loaded-at (.-loaded-at buf)
+                              :lease-holder writer-id
+                              :lease-expires-at (+ now-ts ttl-ms)))]
+           (ok (VFSRegistry
+                 :buffers (map-set (.-buffers registry) norm updated-buf)
+                 :active-paths (.-active-paths registry)
+                 :size (.-size registry)))))))))
+
+(df vfs-release-lease [(registry VFSRegistry) (path Str) (writer-id Str)] -> (Result VFSRegistry Str)
+  :d "Releases exclusive write lease if held by writer-id."
+  (let [(norm (normalize-path path))]
+    (mt (map-get (.-buffers registry) norm)
+      ((none)
+       (err "ERR_BUFFER_NOT_FOUND"))
+      ((some buf)
+       (if (and (!= (.-lease-holder buf) "")
+                (!= (.-lease-holder buf) writer-id))
+         (err "ERR_LEASE_NOT_OWNED")
+         (let [(updated-buf (VFSBuffer
+                              :path norm
+                              :content (.-content buf)
+                              :base-content (.-base-content buf)
+                              :cas-hash (.-cas-hash buf)
+                              :base-hash (.-base-hash buf)
+                              :revision (.-revision buf)
+                              :dirty (.-dirty buf)
+                              :loaded-at (.-loaded-at buf)
+                              :lease-holder ""
+                              :lease-expires-at 0))]
+           (ok (VFSRegistry
+                 :buffers (map-set (.-buffers registry) norm updated-buf)
+                 :active-paths (.-active-paths registry)
+                 :size (.-size registry)))))))))
+
+(df vfs-staged-write [(registry VFSRegistry) (path Str) (writer-id Str) (expected-hash Str) (new-content Str) (now-ts I64)] -> (Result VFSRegistry Str)
+  :d "Applies staged CAS write guarded by lease ownership."
+  (let [(norm (normalize-path path))]
+    (mt (map-get (.-buffers registry) norm)
+      ((none)
+       (vfs-cas-update registry norm expected-hash new-content))
+      ((some buf)
+       (if (and (!= (.-lease-holder buf) "")
+                (!= (.-lease-holder buf) writer-id)
+                (> (.-lease-expires-at buf) now-ts))
+         (err "ERR_LEASE_ACTIVE_CONFLICT")
+         (vfs-cas-update registry norm expected-hash new-content))))))
 
 (df split-lines [(text Str)] -> (List Str)
   :d "Splits text by newlines, returning empty list if text is empty."
