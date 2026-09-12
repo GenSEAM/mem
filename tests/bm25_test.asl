@@ -4,12 +4,13 @@
       test-bm25-ranking-order
       test-rrf-fusion-score]
   :i [(bm25 :a bm)
-      (driver :a drv)])
+      (driver :a drv)
+      (math :a m)])
 
 (df test-fast-ln [] -> Bool
   :d "Verifies natural logarithm Taylor/hyperbolic series approximation."
-  (let [(ln1 (bm/fast-ln 1.0))
-        (ln2 (bm/fast-ln 2.0))]
+  (let [(ln1 (m/fast-ln 1.0))
+        (ln2 (m/fast-ln 2.0))]
     (assert (< ln1 0.01) "ln(1.0) must be approx 0.0")
     (assert (> ln1 -0.01) "ln(1.0) must be approx 0.0")
     (assert (< ln2 0.71) "ln(2.0) must be approx 0.693")
@@ -19,7 +20,7 @@
 (df test-tokenize-terms [] -> Bool
   :d "Verifies lowercase punctuation-stripped term tokenization."
   (let [(tokens (bm/tokenize-terms "Hello, World! Tokenize-this_now."))]
-    (assert (= (list-length tokens) 4) "Tokens count must be 4")
+    (assert (= (list-length tokens) 5) "Tokens count must be 5")
     (assert (= (option-or (list-head tokens) "") "hello") "First token must be hello")
     true))
 

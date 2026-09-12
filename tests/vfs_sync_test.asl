@@ -74,7 +74,7 @@
         (bait-rec0 (cs/make-context-record "search-clickbait" false 2.0 0 1))
         (bait-rec1 (cs/penalize-unreferenced-matches bait-rec0 5))
         (items (list inv-rec bait-rec1))
-        (evicted (cs/evict-below-threshold items 0.0))]
+        (evicted (cs/evict-records-below-threshold items 0.0))]
     (assert (> (.-utility-score inv-rec) 30.0) "Pinned architectural invariant must retain high utility score")
     (assert (< (.-utility-score bait-rec1) 0.0) "Unreferenced search match bait must receive heavy utility penalty")
     (assert (> (.-bait-penalty bait-rec1) 10.0) "Bait penalty must scale with unreferenced matches")
@@ -93,12 +93,12 @@
         (n2 (ba/BoxNode :id "n2" :title "Audit" :state "running"))
         (e1 (ba/BoxEdge :from "n1" :to "n2" :label (some "depends-on")))
         (dag-str (ba/render-dag-boxart (list n1 n2) (list e1)))]
-    (assert (string-contains? badge-done "[✓] Task Alpha") "Badge for done must format with checkmark")
-    (assert (string-contains? badge-active "[▶] Task Beta") "Badge for running must format with play symbol")
-    (assert (string-contains? badge-failed "[✗] Task Gamma") "Badge for failed must format with cross")
-    (assert (string-contains? tree-str "├── Child 1") "Tree boxart must render intermediate branch")
-    (assert (string-contains? tree-str "└── Child 2") "Tree boxart must render final branch")
-    (assert (string-contains? dag-str "▼") "DAG boxart must render directional connector")
+    (assert (string-contains? badge-done "[[OK]] Task Alpha") "Badge for done must format with checkmark")
+    (assert (string-contains? badge-active "[[>]] Task Beta") "Badge for running must format with play symbol")
+    (assert (string-contains? badge-failed "[[FAIL]] Task Gamma") "Badge for failed must format with cross")
+    (assert (string-contains? tree-str "|-- Child 1") "Tree boxart must render intermediate branch")
+    (assert (string-contains? tree-str "+-- Child 2") "Tree boxart must render final branch")
+    (assert (string-contains? dag-str "[v]") "DAG boxart must render directional connector")
     true))
 
 (df test-slm-profile [] -> Bool

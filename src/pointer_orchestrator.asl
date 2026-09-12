@@ -9,7 +9,7 @@
       parse-pointer-spec
       total-active-tokens
       is-context-minimal?]
-  :i [])
+  :i [(checkpoint :a cp)])
 
 (dfs PointerSpec
   (:f id Str "Unique perceptual pointer identifier")
@@ -59,18 +59,6 @@
     :summary (.-summary ptr)
     :payload ""))
 
-(df extract-between [(text Str) (prefix Str) (suffix Str)] -> (Option Str)
-  :d "Extracts substring between prefix and first subsequent suffix"
-  (mt (string-index-of text prefix)
-    ((none) (none))
-    ((some p-idx)
-     (let [(start (+ p-idx (string-length prefix)))
-           (sub (option-or (string-slice text start (string-length text)) ""))]
-       (mt (string-index-of sub suffix)
-         ((none) (none))
-         ((some s-idx)
-          (string-slice sub 0 s-idx)))))))
-
 (df format-pointer-spec [(ptr PointerSpec)] -> Str
   :d "Formats PointerSpec into canonical compact S-expression pointer representation"
   (let [(tok-s (string-from-int64 (.-tokens ptr)))
@@ -84,12 +72,12 @@
   (let [(trimmed (string-trim line))]
     (if (and (string-starts-with? trimmed "(:ptr")
              (string-ends-with? trimmed ")"))
-        (let [(kind-str (extract-between trimmed ":kind \"" "\""))
-              (id-str (extract-between trimmed ":id \"" "\""))
-              (target-str (extract-between trimmed ":target \"" "\""))
-              (tokens-str (extract-between trimmed ":tokens " " "))
-              (expanded-str (extract-between trimmed ":expanded " " "))
-              (summary-str (extract-between trimmed ":summary \"" "\")"))]
+        (let [(kind-str (cp/extract-between trimmed ":kind \"" "\""))
+              (id-str (cp/extract-between trimmed ":id \"" "\""))
+              (target-str (cp/extract-between trimmed ":target \"" "\""))
+              (tokens-str (cp/extract-between trimmed ":tokens " " "))
+              (expanded-str (cp/extract-between trimmed ":expanded " " "))
+              (summary-str (cp/extract-between trimmed ":summary \"" "\")"))]
           (mt kind-str
             ((none) (none))
             ((some k)

@@ -50,7 +50,7 @@
        "```\n\n"
        "## Invariants\n"
        "- 100% pure AgentScript (.asl) in code packages.\n"
-       "- Zero comments (c-0001). Docstrings :d only.\n"
+       "- Zero comments (C0001). Docstrings :d only.\n"
        "- Strict falsification assertions.\n"))
 
 (df project-dual-manifest [(iteration Str) (phase-id Str) (phase-name Str) (status Str) (wave Str) (gate Str)] -> DualProjection
@@ -71,7 +71,7 @@
 
 (dfs AdrRecord
   (:f id Str "Canonical ADR identifier e.g. ADR-0044")
-  (:f shortcode Str "Compact unique shortcode e.g. d-0044")
+  (:f shortcode Str "Compact unique shortcode e.g. D0044")
   (:f title Str "Architecture decision title")
   (:f status Str "Lifecycle status: proposed, active, superseded, deprecated")
   (:f date Str "Date of ratification YYYY-MM-DD")
@@ -80,7 +80,7 @@
   (:f problem Str "Problem statement and architectural motivation")
   (:f drivers (List Str) "Key decision drivers and constraints")
   (:f decision Str "Actionable decision outcome and normative mandate")
-  (:f invariants (List Str) "Preserved system invariants e.g. c-0001, c-0003")
+  (:f invariants (List Str) "Preserved system invariants e.g. C0001, C0003")
   (:f consequences (List AdrConsequence) "Positive and negative consequences"))
 
 (df make-adr [(id Str) (shortcode Str) (title Str) (status Str) (date Str) (cluster Str) (deciders (List Str)) (problem Str) (drivers (List Str)) (decision Str) (invariants (List Str)) (consequences (List AdrConsequence))] -> AdrRecord

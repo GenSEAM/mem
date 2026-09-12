@@ -42,24 +42,24 @@
 
 (df filter-visible-worktrees [(tier VisibilityTier) (current-ws Str) (child-wts (List Str)) (all-wts (List Str))] -> (List Str)
   :d "Filters visible worktree paths according to resolved tier"
-  (case tier
-    (tier-isolated-session (list))
-    (tier-workspace-lineage (cons current-ws child-wts))
-    (tier-sovereign-system all-wts)))
+  (mt tier
+    ((tier-isolated-session) (list))
+    ((tier-workspace-lineage) (cons current-ws child-wts))
+    ((tier-sovereign-system) all-wts)))
 
 (df filter-visible-sessions [(tier VisibilityTier) (active-sess Str) (ws-sessions (List Str)) (all-sessions (List Str))] -> (List Str)
   :d "Filters visible session IDs according to resolved tier"
-  (case tier
-    (tier-isolated-session (list active-sess))
-    (tier-workspace-lineage (cons active-sess ws-sessions))
-    (tier-sovereign-system all-sessions)))
+  (mt tier
+    ((tier-isolated-session) (list active-sess))
+    ((tier-workspace-lineage) (cons active-sess ws-sessions))
+    ((tier-sovereign-system) all-sessions)))
 
 (df filter-visible-repos [(tier VisibilityTier) (current-repo Str) (all-repos (List Str))] -> (List Str)
   :d "Filters visible repository IDs according to resolved tier"
-  (case tier
-    (tier-isolated-session (list))
-    (tier-workspace-lineage (list current-repo))
-    (tier-sovereign-system all-repos)))
+  (mt tier
+    ((tier-isolated-session) (list))
+    ((tier-workspace-lineage) (list current-repo))
+    ((tier-sovereign-system) all-repos)))
 
 (df make-visibility-context [(cwd Str) (active-sess Str) (global-asl-dir Str) (is-in-ws Bool) (current-ws Str) (current-repo Str) (child-wts (List Str)) (all-wts (List Str)) (ws-sessions (List Str)) (all-sessions (List Str)) (all-repos (List Str))] -> VisibilityContext
   :d "Constructs a resolved VisibilityContext record from system topology"
@@ -73,7 +73,7 @@
       :active-session-id active-sess
       :global-asl-dir global-asl-dir
       :tier tier
-      :active-workspace-root (if (= tier (tier-workspace-lineage)) current-ws "")
+      :active-workspace-root (mt tier ((tier-workspace-lineage) current-ws) (_ ""))
       :visible-worktrees vis-wts
       :visible-repos vis-repos
       :visible-session-ids vis-sess)))

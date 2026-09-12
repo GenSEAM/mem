@@ -34,13 +34,6 @@
   (:f unflushed (List WalEntry) "Buffered entries awaiting file flush")
   (:f total-committed I64 "Lifetime committed entries count"))
 
-(dfs WalPair
-  (:f first Any "First component")
-  (:f second Any "Second component"))
-
-(df pair [(a Any) (b Any)] -> WalPair
-  :d "Constructs a pair record with first and second accessors."
-  (WalPair :first a :second b))
 
 (df op-type-to-string [(op WalOpType)] -> Str
   :d "Converts WalOpType to wire string identifier."

@@ -10,7 +10,7 @@
       resume
       extract
       verify
-      format]
+      format-recovery]
   :i [(tasks_store :a t)
       (asl-text/escape :a esc)])
 
@@ -97,6 +97,6 @@
   :d "1-to-2 token alias for verify-checkpoint-integrity."
   (verify-checkpoint-integrity task))
 
-(df format [(snap RecoverySnapshot)] -> Str
+(df format-recovery [(snap RecoverySnapshot)] -> Str
   :d "1-to-2 token alias for format-recovery-asn."
   (format-recovery-asn snap))

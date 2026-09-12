@@ -8,7 +8,7 @@
       run-tests]
   :i [(vfs :a v)
       (refactor_vfs :a rv)
-      (../../asl/packages/asl-compiler/src/compact_rewrite :a cr)])
+      (asl-compiler/compact-rewrite :a cr)])
 
 (df test-stage-refactor-diff [] -> Bool
   :d "Verifies in-memory refactor staging with diff and token savings telemetry."

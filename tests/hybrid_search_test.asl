@@ -105,7 +105,7 @@
 
 (df test-prompt-cache-prefix-stability [] -> Bool
   :doc "Verifies prompt prefix freezing and bit-for-bit prefix stability across dynamic turns."
-  (let [(axioms (list "d-0015: Token Arbitrage" "d-0016: Agent-Native Autonomy" "d-0017: Falsifiable Observability"))
+  (let [(axioms (list "D0015: Token Arbitrage" "D0016: Agent-Native Autonomy" "D0017: Falsifiable Observability"))
         (tools (list "run_command" "view_file" "grep_search" "replace_file_content"))
         (prefix (pc/freeze-system-prefix axioms tools))
         (turn1 (pc/assemble-cached-prompt prefix (list "User: Report system status." "Agent: Status is nominal.")))
@@ -140,10 +140,10 @@
                    "  :doc \"computes value\"\n"
                    "  (+ x 99))\n"))
         (res (sc/reconcile-incremental-diff c1 src2))
-        (unchanged (first res))
-        (c2 (second res))
+        (unchanged (fst res))
+        (c2 (snd res))
         (src1-identical (sc/reconcile-incremental-diff c1 src1))
-        (unchanged-all (first src1-identical))]
+        (unchanged-all (fst src1-identical))]
     (assert (= (map-size entries1) 3) "Source 1 must contain 3 indexed top-level subtrees")
     (assert (= (list-length unchanged) 2) "Source 2 must reuse exactly 2 unchanged subtrees from cache")
     (assert (= (map-size (.-entries c2)) 3) "Updated cache must contain 3 entries")

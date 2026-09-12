@@ -22,7 +22,8 @@
       make-opfs-persistence
       make-indexed-db-backup
       make-browser-vfs-storage
-      sync-browser-vfs-storage]
+      sync-browser-vfs-storage
+      char-to-code]
   :i [])
 
 (dfs VFSBuffer

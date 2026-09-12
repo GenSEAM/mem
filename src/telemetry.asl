@@ -4,7 +4,7 @@
       format-telemetry-entry
       parse-telemetry-entry
       stream-step-telemetry]
-  :i [])
+  :i [(checkpoint :a cp)])
 
 (dfs TelemetryRecord
   (:f timestamp-ms I64 "Epoch timestamp in milliseconds when step executed")
@@ -26,29 +26,17 @@
         (p2 (str " :duration " dur " :rss " rss " :dirty " dirty ")"))]
     (str p1 p2)))
 
-(df extract-between [(text Str) (prefix Str) (suffix Str)] -> (Option Str)
-  :d "Extracts substring between prefix and first subsequent suffix."
-  (mt (string-index-of text prefix)
-    ((none) (none))
-    ((some p-idx)
-     (let [(start (+ p-idx (string-length prefix)))
-           (sub (option-or (string-slice text start (string-length text)) ""))]
-       (mt (string-index-of sub suffix)
-         ((none) (none))
-         ((some s-idx)
-          (string-slice sub 0 s-idx)))))))
-
 (df parse-telemetry-entry [(line Str)] -> (Option TelemetryRecord)
   :d "Parses a single ND-ASN line into a TelemetryRecord."
   (let [(trimmed (string-trim line))]
     (if (and (string-starts-with? trimmed "(:telem")
              (string-ends-with? trimmed ")"))
-      (let [(ts-str (extract-between trimmed ":ts " " "))
-            (phase-str (extract-between trimmed ":phase \"" "\""))
-            (tok-str (extract-between trimmed ":tokens " " "))
-            (dur-str (extract-between trimmed ":duration " " "))
-            (rss-str (extract-between trimmed ":rss " " "))
-            (dirty-str (extract-between trimmed ":dirty " ")"))]
+      (let [(ts-str (cp/extract-between trimmed ":ts " " "))
+            (phase-str (cp/extract-between trimmed ":phase \"" "\""))
+            (tok-str (cp/extract-between trimmed ":tokens " " "))
+            (dur-str (cp/extract-between trimmed ":duration " " "))
+            (rss-str (cp/extract-between trimmed ":rss " " "))
+            (dirty-str (cp/extract-between trimmed ":dirty " ")"))]
         (mt phase-str
           ((none) (none))
           ((some ph)

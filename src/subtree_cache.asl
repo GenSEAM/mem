@@ -5,7 +5,7 @@
       index-subtrees
       lookup-subtree
       reconcile-incremental-diff]
-  :i [])
+  :i [(vfs :a v)])
 
 (dfs SubtreeEntry
   (:f hash Str "Content-addressed hash of subtree form")
@@ -16,19 +16,12 @@
 (dfs SubtreeCache
   (:f entries (Map Str SubtreeEntry) "Map of CAS hash to SubtreeEntry"))
 
-(df char-to-code [(ch Str)] -> I64
-  :doc "Maps single character to deterministic integer code."
-  (let [(charset "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !\"#$%&'()*+,-./:<=>?@[\\]^_`{|}~\t\n\r")]
-    (mt (string-index-of charset ch)
-      ((none) 127)
-      ((some idx) (+ idx 32)))))
-
 (df compute-subtree-hash [(content Str)] -> Str
   :doc "Computes deterministic CAS hash of subtree form text."
   (let [(chars (string-chars content))
         (len (string-length content))
         (h (fold (fn [(acc I64) (ch Str)] -> I64
-                   (mod (+ (* acc 31) (char-to-code ch)) 2147483647))
+                   (mod (+ (* acc 31) (v/char-to-code ch)) 2147483647))
                  5381
                  chars))]
     (str "cas-" (string-from-int64 h) "-" (string-from-int64 len))))

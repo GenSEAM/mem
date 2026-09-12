@@ -6,7 +6,7 @@
       commit-staged-refactor
       rollback-staged-refactor]
   :i [(vfs :a v)
-      (../../asl/packages/asl-compiler/src/compact_rewrite :a cr)])
+      (asl-compiler/compact-rewrite :a cr)])
 
 (dfs RefactorPlan
   (:f path Str "Normalized virtual file path")

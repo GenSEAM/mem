@@ -18,7 +18,19 @@
       query-rule
       is-invariant-rule?
       check-invariants
-      verify-module])
+      verify-module
+      LifecycleKind
+      ClosureCondition
+      LifecycleRecord
+      make-closure-condition
+      make-lifecycle-record
+      lifecycle-kind-to-string
+      string-to-lifecycle-kind
+      validate-closure-condition
+      is-closure-evaluable?
+      refuse-unevaluable-closure
+      close-goal-by-evaluation
+      evaluate-closure])
 
 (dfe ShortcodeType
   (:c p-dec [] "Architectural Decision Record (e.g., d-xxxx)")
@@ -246,3 +258,113 @@
                            missing
                            unreg))]
     (make-scan-result mod-name refs all-missing)))
+
+(dfe LifecycleKind
+  (:c lk-intent [] "intent lifecycle kind: why work is done; closes when reason no longer holds")
+  (:c lk-goal [] "goal lifecycle kind: what done looks like; closes when observable predicate evaluates to true")
+  (:c lk-practice [] "practice lifecycle kind: how work is done; closes when contradictory measurement emerges"))
+
+(dfs ClosureCondition
+  (:f kind Str "Condition classification: reason-invalidated, observable-satisfied, or practice-refuted")
+  (:f predicate Str "Evaluable predicate expression or observable gate command")
+  (:f observable Str "Observable outcome or target state verified by evaluation")
+  (:f evaluable Bool "Whether condition can be evaluated mechanically"))
+
+(dfs LifecycleRecord
+  (:f id Str "Record identifier")
+  (:f kind Str "Lifecycle kind: intent, goal, or practice")
+  (:f title Str "Human-readable summary title")
+  (:f description Str "Substantive specification or rationale")
+  (:f closure ClosureCondition "Mandatory closure condition")
+  (:f status Str "Lifecycle status: active, fulfilled, closed, retired, stale"))
+
+(df make-closure-condition [(kind Str) (predicate Str) (observable Str) (evaluable Bool)] -> ClosureCondition
+  :d "Constructs a ClosureCondition record."
+  (ClosureCondition
+    :kind kind
+    :predicate predicate
+    :observable observable
+    :evaluable evaluable))
+
+(df make-lifecycle-record [(id Str) (kind Str) (title Str) (desc Str) (closure ClosureCondition) (status Str)] -> LifecycleRecord
+  :d "Constructs a LifecycleRecord record."
+  (LifecycleRecord
+    :id id
+    :kind kind
+    :title title
+    :description desc
+    :closure closure
+    :status status))
+
+(df lifecycle-kind-to-string [(k LifecycleKind)] -> Str
+  :d "Converts LifecycleKind enum to canonical string representation."
+  (mt k
+    ((lk-intent) "intent")
+    ((lk-goal) "goal")
+    ((lk-practice) "practice")))
+
+(df string-to-lifecycle-kind [(s Str)] -> (Option LifecycleKind)
+  :d "Parses string representation into LifecycleKind enum."
+  (cond
+    ((= s "intent") (some (lk-intent)))
+    ((= s "goal") (some (lk-goal)))
+    ((= s "practice") (some (lk-practice)))
+    (:else (none))))
+
+(df is-closure-evaluable? [(cond ClosureCondition)] -> Bool
+  :d "Determines if closure condition can be evaluated without unevaluable ambiguity."
+  (if (not (.-evaluable cond))
+    false
+    (let [(p (string-trim (.-predicate cond)))
+          (obs (string-trim (.-observable cond)))]
+      (if (or (string-empty? p) (string-empty? obs))
+        false
+        (if (or (string-contains? p "unevaluable") (string-contains? obs "unevaluable"))
+          false
+          true)))))
+
+(df validate-closure-condition [(cond ClosureCondition)] -> Bool
+  :d "Validates that a closure condition is non-empty, well-formed, and evaluable."
+  (and (not (string-empty? (string-trim (.-kind cond))))
+       (is-closure-evaluable? cond)))
+
+(df refuse-unevaluable-closure [(reason Str)] -> Str
+  :d "Returns structured refusal message when closure condition is unevaluable."
+  (string-append "refused: unevaluable closure condition: " reason))
+
+(df close-goal-by-evaluation [(rec LifecycleRecord) (observable-satisfied Bool)] -> LifecycleRecord
+  :d "Evaluates goal observable; if true, transitions status to closed/fulfilled without hand edit."
+  (if (not (= (.-kind rec) "goal"))
+    rec
+    (if (not (is-closure-evaluable? (.-closure rec)))
+      rec
+      (if observable-satisfied
+        (LifecycleRecord
+          :id (.-id rec)
+          :kind (.-kind rec)
+          :title (.-title rec)
+          :description (.-description rec)
+          :closure (.-closure rec)
+          :status "fulfilled")
+        rec))))
+
+(df evaluate-closure [(rec LifecycleRecord) (observable-satisfied Bool)] -> LifecycleRecord
+  :d "Evaluates closure condition across intent, goal, and practice types."
+  (let [(c (.-closure rec))]
+    (if (not (is-closure-evaluable? c))
+      rec
+      (if observable-satisfied
+        (let [(new-status (if (= (.-kind rec) "goal")
+                            "fulfilled"
+                            (if (= (.-kind rec) "intent")
+                              "closed"
+                              "retired")))]
+          (LifecycleRecord
+            :id (.-id rec)
+            :kind (.-kind rec)
+            :title (.-title rec)
+            :description (.-description rec)
+            :closure c
+            :status new-status))
+        rec))))
+

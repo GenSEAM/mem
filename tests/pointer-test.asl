@@ -14,7 +14,7 @@
     (assert (= (.-id ptr) "b3-dom-001") "id matches")
     (assert (= (.-kind ptr) "dom") "kind matches")
     (assert (= (.-bytes ptr) (string-length raw)) "bytes match")
-    (assert (= (.-tokens-saved ptr) (/ (string-length raw) 4)) "tokens saved match")
+    (assert (= (.-tokens-saved ptr) (div-i64 (string-length raw) 4)) "tokens saved match")
     (assert (= (.-summary ptr) "DOM summary for hello page") "summary matches")
     true))
 

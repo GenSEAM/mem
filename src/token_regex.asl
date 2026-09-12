@@ -6,7 +6,8 @@
       compile-token-pattern
       match-token-stream
       scan-token-stream
-      find-token-subsequences]
+      find-token-subsequences
+      tokenize-pattern]
   :i [])
 
 (dfs TokenPattern
@@ -32,15 +33,19 @@
       (slice-tokens-loop tokens (+ idx 1) end-idx (list-append acc (list tok))))))
 
 (df tokenize-pattern [(s Str)] -> (List Str)
-  :d "Tokenizes pattern string into whitespace-separated pattern tokens."
-  (let [(res (fold (fn [(acc (Pair (List Str) Str)) (ch Str)] -> (Pair (List Str) Str)
+  :d "Tokenizes pattern string into tokens, separating S-expression parentheses while preserving regex groups."
+  (let [(has-group (string-contains? s "(?<"))
+        (res (fold (fn [(acc (Pair (List Str) Str)) (ch Str)] -> (Pair (List Str) Str)
                      (let [(tokens (.-first acc))
                            (curr (.-second acc))]
                        (if (or (= ch " ") (or (= ch "\t") (or (= ch "\n") (= ch "\r"))))
                          (if (= curr "")
                            (pair tokens "")
                            (pair (list-append tokens (list curr)) ""))
-                         (pair tokens (str curr ch)))))
+                         (if (and (not has-group) (or (= ch "(") (= ch ")")))
+                           (let [(t1 (if (= curr "") tokens (list-append tokens (list curr))))]
+                             (pair (list-append t1 (list ch)) ""))
+                           (pair tokens (str curr ch))))))
                    (pair (list) "")
                    (string-split s "")))]
     (if (= (.-second res) "")

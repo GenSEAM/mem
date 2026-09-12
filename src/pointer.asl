@@ -30,7 +30,7 @@
       :id id
       :kind kind
       :bytes len
-      :tokens-saved (/ len 4)
+      :tokens-saved (div-i64 len 4)
       :summary summary)))
 
 (df format-pointer-token [(ptr BlobPointer)] -> Str

@@ -6,7 +6,7 @@
       query-memory-shortcode
       benchmark-mem-latency
       make-empty-migration-result]
-  :i [(records :a rec) (core/strings :a s)])
+  :i [(records :a rec) (asl-text/string :a s)])
 
 (dfs PcpMigrationResult
   (:f migrated-rules (List rec/AdrRule) "List of migrated architectural decision and law records")

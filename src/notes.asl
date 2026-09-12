@@ -9,7 +9,9 @@
       format-note-asn
       project-note-md
       note-promote-to-task
-      note-promote-to-adr]
+      note-promote-to-adr
+      note-close-scope
+      note-prune-bounded]
   :i [(asl-text/escape :a esc)])
 
 (dfs NoteRecord
@@ -19,26 +21,39 @@
   (:f session Str "Session ID in which observation occurred")
   (:f date Str "Date of recording YYYY-MM-DD")
   (:f status Str "Lifecycle status: active, promoted-to-task, promoted-to-adr, archived")
-  (:f scope (List Str) "List of affected file paths or packages")
+  (:f scope Any "List of affected file paths or packages, or scope lifetime")
   (:f tags (List Str) "Categorization tags e.g. tokens, density, refactor")
   (:f fact Str "Distilled empirical observation or grounded finding")
   (:f evidence Str "Physical execution citation, test run, or AST symbol evidence")
   (:f consequence Str "Architectural implication or trade-off"))
 
-(df make-note [(id Str) (topic Str) (author Str) (session Str) (date Str) (status Str) (scope (List Str)) (tags (List Str)) (fact Str) (evidence Str) (consequence Str)] -> NoteRecord
-  :d "Constructs a typed NoteRecord."
-  (NoteRecord
-    :id id
-    :topic topic
-    :author author
-    :session session
-    :date date
-    :status status
-    :scope scope
-    :tags tags
-    :fact fact
-    :evidence evidence
-    :consequence consequence))
+(df make-note [p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11] -> NoteRecord
+  :d "Constructs a typed NoteRecord, supporting both 5-arg (id, fact, topic, tags, scope) and 11-arg forms."
+  (if (= p6 null)
+    (NoteRecord
+      :id p1
+      :topic p3
+      :author "agent"
+      :session "sess-current"
+      :date "2026-09-12"
+      :status "active"
+      :scope p5
+      :tags (if (= p4 null) (list) p4)
+      :fact p2
+      :evidence ""
+      :consequence "")
+    (NoteRecord
+      :id p1
+      :topic p2
+      :author p3
+      :session p4
+      :date p5
+      :status p6
+      :scope p7
+      :tags p8
+      :fact p9
+      :evidence p10
+      :consequence p11)))
 
 (df note-is-active? [(note NoteRecord)] -> Bool
   :d "Checks if a note is currently active."
@@ -50,9 +65,11 @@
     (> (list-length matches) 0)))
 
 (df note-scope-matches? [(note NoteRecord) (path Str)] -> Bool
-  :d "Checks if a note scope matches a specific file path."
-  (let [(matches (filter (fn [(s Str)] -> Bool (or (= s path) (string-contains? path s))) (.-scope note)))]
-    (> (list-length matches) 0)))
+  :d "Checks if a note scope matches a specific file path or scope lifecycle."
+  (let [(sc (.-scope note))]
+    (or (= sc path)
+        (string-contains? sc path)
+        (string-contains? path sc))))
 
 (df note-matches-query? [(note NoteRecord) (query Str)] -> Bool
   :d "Evaluates case-sensitive substring matching across topic, fact, tags, and id."
@@ -64,8 +81,11 @@
 
 (df format-note-asn [(note NoteRecord)] -> Str
   :d "Serializes NoteRecord into canonical machine ASN representation."
-  (let [(scope-quoted (map (fn [(s Str)] -> Str (str "\"" (esc/escape-asn-str s) "\"")) (.-scope note)))
-        (scope-str (str "[" (string-join scope-quoted " ") "]"))
+  (let [(sc (.-scope note))
+        (scope-str (if (> (list-length sc) 0)
+                     (let [(scope-quoted (map (fn [(s Str)] -> Str (str "\"" (esc/escape-asn-str s) "\"")) sc))]
+                       (str "[" (string-join scope-quoted " ") "]"))
+                     (str "\"" (esc/escape-asn-str sc) "\"")))
         (tags-quoted (map (fn [(t Str)] -> Str (str ":" t)) (.-tags note)))
         (tags-str (str "[" (string-join tags-quoted " ") "]"))]
     (str "(:note\n"
@@ -131,3 +151,27 @@
     :fact (.-fact note)
     :evidence (.-evidence note)
     :consequence (str (.-consequence note) " (Promoted to ADR: " adr-id ")")))
+
+(df note-close-scope [(notes (List NoteRecord)) (closing-scope Str)] -> (List NoteRecord)
+  :d "Retires ephemeral notes belonging to the closed scope while preserving promoted notes and higher-tier scopes."
+  (filter (fn [(n NoteRecord)] -> Bool
+            (let [(sc (.-scope n))
+                  (st (.-status n))]
+              (if (or (= st "promoted-to-task") (= st "promoted-to-adr"))
+                true
+                (if (= closing-scope "step")
+                  (not (= sc "step"))
+                  (if (= closing-scope "task")
+                    (and (not (= sc "step")) (not (= sc "task")))
+                    true)))))
+          notes))
+
+(df note-prune-bounded [(notes (List NoteRecord)) (max-active Int)] -> (List NoteRecord)
+  :d "Keeps the active note store strictly bounded under continuous note authoring."
+  (let [(len (list-length notes))]
+    (if (<= len max-active)
+      notes
+      (let [(excess (- len max-active))
+            (rem (option-unwrap (list-slice notes excess len)))]
+        rem))))
+

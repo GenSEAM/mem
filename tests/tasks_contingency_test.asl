@@ -26,7 +26,7 @@
   :d "Verifies construction of TaskTolerance with invariants, leeway, risks, and triggers."
   (let [(r (t/make-anticipated-risk "AST limit" "Over-token" "Factor helper" "asl check"))
         (tol (t/make-task-tolerance
-               (list "c-0001" "c-0003" "wire-protocol")
+               (list "C0001" "C0003" "wire-protocol")
                (list "internal-helper-decomposition" "extra-tests")
                (list r)
                (list "edits-outside-owns" "broken-api")))]
@@ -41,14 +41,14 @@
   :d "Verifies that proposed actions inside leeway are accepted and invariant violations are rejected."
   (let [(r (t/make-anticipated-risk "AST limit" "Over-token" "Factor helper" "asl check"))
         (tol (t/make-task-tolerance
-               (list "c-0001" "wire-protocol")
+               (list "C0001" "wire-protocol")
                (list "internal-helper-decomposition" "extra-tests")
                (list r)
                (list "edits-outside-owns")))]
     (do
       (assert (t/task-is-within-leeway? tol "internal-helper-decomposition") "Permitted leeway action must pass")
       (assert (t/task-is-within-leeway? tol "extra-tests") "Extra tests action must pass")
-      (assert (not (t/task-is-within-leeway? tol "c-0001")) "Strict invariant must be rejected")
+      (assert (not (t/task-is-within-leeway? tol "C0001")) "Strict invariant must be rejected")
       (assert (not (t/task-is-within-leeway? tol "wire-protocol")) "Wire protocol violation must be rejected")
       (assert (not (t/task-is-within-leeway? tol "unlisted-arbitrary-action")) "Unlisted action must be rejected")
       true)))
@@ -56,7 +56,7 @@
 (df test-escalation-trigger-matching [] -> Bool
   :d "Verifies detection of escalation events and negative cases."
   (let [(tol (t/make-task-tolerance
-               (list "c-0001")
+               (list "C0001")
                (list "extra-tests")
                (list)
                (list "edits-outside-owns" "broken-api-signature")))]
@@ -71,7 +71,7 @@
   :d "Verifies canonical ASN formatting of AnticipatedRisk and TaskTolerance."
   (let [(r (t/make-anticipated-risk "Name collision" "Compile error" "Use alias" "asl check"))
         (tol (t/make-task-tolerance
-               (list "c-0001" "c-0003")
+               (list "C0001" "C0003")
                (list "helper-decomposition")
                (list r)
                (list "edits-outside-owns")))
@@ -82,7 +82,7 @@
       (assert (string-contains? s-risk ":condition \"Name collision\"") "Risk ASN must contain condition")
       (assert (string-contains? s-risk ":mitigation \"Use alias\"") "Risk ASN must contain mitigation")
       (assert (string-contains? s-tol ":tolerance") "Tolerance ASN must contain :tolerance tag")
-      (assert (string-contains? s-tol ":strict [\"c-0001\" \"c-0003\"]") "Tolerance ASN must contain strict list")
+      (assert (string-contains? s-tol ":strict [\"C0001\" \"C0003\"]") "Tolerance ASN must contain strict list")
       (assert (string-contains? s-tol ":leeway [\"helper-decomposition\"]") "Tolerance ASN must contain leeway list")
       (assert (string-contains? s-tol ":escalate [\"edits-outside-owns\"]") "Tolerance ASN must contain escalate list")
       true)))

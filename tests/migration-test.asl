@@ -18,11 +18,11 @@
        "    title: Pure AgentScript Invariant\n"
        "    why: Zero foreign files allowed in packages\n"
        "    status: active\n"
-       "  - code: d-0042\n"
+       "  - code: D0042\n"
        "    title: Native S-Expression Memory Storage\n"
        "    why: Eliminates markdown file parsing overhead and context drowning\n"
        "    status: active\n"
-       "  - code: c-0007\n"
+       "  - code: C0007\n"
        "    title: No Subagent Context Duplication\n"
        "    why: Internalize steps protocol to save tokens and eliminate latency\n"
        "    status: active\n"))
@@ -58,7 +58,7 @@
         (asn-str (mig/serialize-ledger-asn ledger))]
     (assert (string-contains? asn-str "(:asl-mem-ledger") "contains ledger tag")
     (assert (string-contains? asn-str "(:rule :code \"l-0001\"") "contains rule l-0001")
-    (assert (string-contains? asn-str "(:rule :code \"d-0042\"") "contains rule d-0042")
+    (assert (string-contains? asn-str "(:rule :code \"D0042\"") "contains rule D0042")
     true))
 
 (df test-migration-token-savings [] -> Bool

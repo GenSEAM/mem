@@ -35,13 +35,14 @@
 
 (df run-tests [] -> Bool
   :d "Runs all asl-mem records unit tests."
-  (let [(_t1 (test-shortcode-creation))
-        (_t2 (test-rule-and-ledger))
-        (_t3 (test-scan-and-verify))]
-    true))
+  (let [(t1 (test-shortcode-creation))
+        (t2 (test-rule-and-ledger))
+        (t3 (test-scan-and-verify))] (and t1 (and t2 t3))))
 
 (df ! main [(args (List Str))] -> (Result Unit IoError)
   :d "Runs unit tests for asl-mem records."
-  (let [(_ (run-tests))]
-    (println "asl-mem records tests passed cleanly")
-    (ok ())))
+  (if (run-tests)
+    (let [(u (println "asl-mem records tests passed cleanly"))]
+      (ok ()))
+    (let [(u (eprintln "asl-mem records test failure"))]
+      (err (other)))))

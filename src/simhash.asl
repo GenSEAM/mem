@@ -4,15 +4,10 @@
       simhash-64
       popcount-64
       hamming-distance
-      simhash-similarity]
-  :i [])
-
-(df char-to-code [(ch Str)] -> I64
-  :doc "Maps single character to deterministic integer code."
-  (let [(charset "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !\"#$%&'()*+,-./:<=>?@[\\]^_`{|}~\t\n\r")]
-    (mt (string-index-of charset ch)
-      ((none) 127)
-      ((some idx) (+ idx 32)))))
+      simhash-similarity
+      strip-punct
+      tokenize-words]
+  :i [(vfs :a v)])
 
 (df to-u64 [(x I64)] -> I64
   :doc "Normalizes integer to unsigned 64-bit range."
@@ -39,7 +34,7 @@
       h
       (let [(ch (option-or (list-head chars) ""))
             (rest (option-or (list-tail chars) (list)))
-            (code (char-to-code ch))
+            (code (v/char-to-code ch))
             (xor-h (bit-xor-64 h code))
             (next-h (mod (* xor-h 1099511628211) 18446744073709551616))]
         (fnv-chars-loop rest next-h))))

@@ -171,11 +171,3 @@
 (df settle [(task ts/TaskRecord) (receipt Str) (now-epoch I64)] -> ts/TaskRecord
   :d "1-to-2 token alias for task-complete."
   (task-complete task receipt now-epoch))
-
-(df task/claim [(task ts/TaskRecord) (now-epoch I64)] -> ts/TaskRecord
-  :d "Modular alias for task-claim."
-  (task-claim task now-epoch))
-
-(df task/settle [(task ts/TaskRecord) (receipt Str) (now-epoch I64)] -> ts/TaskRecord
-  :d "Modular alias for task-complete."
-  (task-complete task receipt now-epoch))

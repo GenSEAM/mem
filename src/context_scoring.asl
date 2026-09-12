@@ -1,11 +1,15 @@
 (module asl-mem/context-scoring
   :d "Multi-factor context utility scoring and anti-bait eviction governor"
   :x [ContextScoreRecord
+      ActiveVolumeReport
       make-context-record
       calculate-context-score
       penalize-unreferenced-matches
-      evict-below-threshold]
-  :i [])
+      evict-records-below-threshold
+      calculate-active-volume
+      is-volume-bounded?
+      report-active-volume]
+  :i [(math :a m)])
 
 (dfs ContextScoreRecord
   (:f id Str "Context item or invariant unique identifier")
@@ -18,25 +22,13 @@
   (:f bait-penalty F64 "Computed anti-bait utility penalty")
   (:f utility-score F64 "Final composite context utility score"))
 
-(df fast-ln [(x F64)] -> F64
-  :d "Pure ASL natural logarithm approximation using hyperbolic series."
-  (if (<= x 0.0)
-    -10.0
-    (let [(z (/ (- x 1.0) (+ x 1.0)))
-          (z2 (* z z))
-          (term1 z)
-          (term2 (* term1 z2))
-          (term3 (* term2 z2))
-          (term4 (* term3 z2))]
-      (* 2.0 (+ term1 (+ (/ term2 3.0) (+ (/ term3 5.0) (/ term4 7.0))))))))
-
 (df calculate-context-score [(record ContextScoreRecord) (lambda-decay F64) (bait-penalty-rate F64)] -> ContextScoreRecord
   :d "Calculates multi-factor utility score protecting invariants and penalizing unreferenced bait."
   (let [(inv-term (if (.-is-invariant record) (.-invariant-weight record) 0.0))
         (cost-term (.-retrieval-cost record))
         (links-term (int64-to-float64 (.-reference-links record)))
         (dt-float (int64-to-float64 (.-delta-turns record)))
-        (dt-term (* lambda-decay (fast-ln (+ 1.0 dt-float))))
+        (dt-term (* lambda-decay (m/fast-ln (+ 1.0 dt-float))))
         (unref-float (int64-to-float64 (.-unreferenced-matches record)))
         (computed-bait (* unref-float bait-penalty-rate))
         (final-score (- (+ (+ inv-term cost-term) links-term) (+ dt-term computed-bait)))]
@@ -81,7 +73,7 @@
                        :utility-score (.-utility-score record)))]
     (calculate-context-score updated-rec 1.0 2.5)))
 
-(df evict-below-threshold [(records (List ContextScoreRecord)) (threshold F64)] -> (List ContextScoreRecord)
+(df evict-records-below-threshold [(records (List ContextScoreRecord)) (threshold F64)] -> (List ContextScoreRecord)
   :d "Filters out context items scoring strictly below the eviction threshold unless pinned invariant."
   (fold (fn [(acc (List ContextScoreRecord)) (rec ContextScoreRecord)] -> (List ContextScoreRecord)
           (if (or (.-is-invariant rec) (>= (.-utility-score rec) threshold))
@@ -89,3 +81,25 @@
             acc))
         (list)
         records))
+
+(dfs ActiveVolumeReport
+  (:f volume I64 "Current active volume of memory context")
+  (:f ceiling I64 "Ceiling threshold for active volume")
+  (:f bounded Bool "Whether active volume is within ceiling bound"))
+
+(df calculate-active-volume [(records (List ContextScoreRecord))] -> I64
+  :d "Calculates the total active volume from records."
+  (list-length records))
+
+(df is-volume-bounded? [(volume I64) (ceiling I64)] -> Bool
+  :d "Checks if active volume is bounded within maximum volume ceiling."
+  (<= volume ceiling))
+
+(df report-active-volume [(records (List ContextScoreRecord)) (ceiling I64)] -> ActiveVolumeReport
+  :d "Reports structured metrics for active context volume and bound enforcement."
+  (let [(vol (calculate-active-volume records))
+        (bounded (is-volume-bounded? vol ceiling))]
+    (ActiveVolumeReport
+      :volume vol
+      :ceiling ceiling
+      :bounded bounded)))

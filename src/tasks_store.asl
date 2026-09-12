@@ -38,7 +38,7 @@
   (:f tests-failed I64 "Total count of failing test cases, must be 0 for verified success")
   (:f mutated-files (List Str) "List of files touched by execution")
   (:f diff-hash Str "Cryptographic hash of physical code modifications or changes")
-  (:f checked-invariants (List Str) "Set of verified invariant labels e.g. c-0001, d-0034")
+  (:f checked-invariants (List Str) "Set of verified invariant labels e.g. C0001, D0034")
   (:f raw-evidence Str "Sanitized snippet of stdout or physical verification output"))
 
 (df make-task-receipt [(exit-code I64) (duration-ms I64) (rss-mb I64) (asserts-evaluated I64) (tests-passed I64) (tests-failed I64) (mutated-files (List Str)) (diff-hash Str) (checked-invariants (List Str)) (raw-evidence Str)] -> TaskReceipt
@@ -82,7 +82,7 @@
   (:f contingency-gate Str "Falsifiable verification command proving successful mitigation"))
 
 (dfs TaskTolerance
-  (:f strict-invariants (List Str) "List of inviolable constraints: c-0001 c-0002 c-0003 wire protocols gate assertions")
+  (:f strict-invariants (List Str) "List of inviolable constraints: C0001 C0002 C0003 wire protocols gate assertions")
   (:f variance-leeway (List Str) "List of authorized autonomous adaptation dimensions within declared owns")
   (:f anticipated-risks (List AnticipatedRisk) "List of pre-computed scenario contingencies")
   (:f escalation-triggers (List Str) "List of conditions mandating immediate task stoppage and handoff"))
@@ -144,7 +144,7 @@
   (:f related-symbols (List Str) "List of dependent callers, AST references, or blast-radius impacted symbols")
   (:f depends-on (List Str) "List of prerequisite task identifiers")
   (:f gate Str "Falsifiable verification gate shell command")
-  (:f why Str "Architectural rationale and invariant checked e.g. c-0001, c-0003, d-0034")
+  (:f why Str "Architectural rationale and invariant checked e.g. C0001, C0003, D0034")
   (:f spec Str "Precise step-by-step specification of actions, constraints, and deliverables")
   (:f acceptance-criteria (List Str) "Explicit boolean properties and predicates required for acceptance")
   (:f step-index I64 "Monotonic index of active sub-step within action DAG")

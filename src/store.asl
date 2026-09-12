@@ -1,6 +1,7 @@
 (module asl-mem/store
   :d "In-memory vector store: L2 norm, dimension validation, cosine similarity, and contiguous flat memory slab."
-  :x [VectorItem VectorStore VectorSlab make-vector-slab slab-slot-offset slab-insert sqrt-approx dot vector-norm cosine-similarity normalize-vector dot-normalized validate-vector-dim safe-insert-item])
+  :x [VectorItem VectorStore VectorSlab make-vector-slab slab-slot-offset slab-insert sqrt-approx dot normalize-vector dot-normalized validate-vector-dim safe-insert-item]
+  :i [(math :a m)])
 
 (dfs VectorItem
   (:f id Str "Stable identifier for the stored item")
@@ -38,20 +39,9 @@
   :d "Sum of pairwise products, truncating to the shorter vector."
   (dot-helper a b 0.0))
 
-(df vector-norm [(v (List F64))] -> F64
-  :d "Euclidean L2 norm."
-  (sqrt-approx (dot v v)))
-
-(df cosine-similarity [(a (List F64)) (b (List F64))] -> F64
-  :d "Cosine of the angle between two vectors; 0.0 when either has no length."
-  (let [(denom (* (vector-norm a) (vector-norm b)))]
-    (if (= denom 0.0)
-      0.0
-      (/ (dot a b) denom))))
-
 (df normalize-vector [(v (List F64))] -> (List F64)
   :d "Returns unit-length normalized vector for fast dot product cosine similarity."
-  (let [(norm (vector-norm v))]
+  (let [(norm (m/vector-norm v))]
     (if (= norm 0.0)
       v
       (map (fn [(x F64)] -> F64 (/ x norm)) v))))

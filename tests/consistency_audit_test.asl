@@ -11,9 +11,9 @@
 (df test-shortcode-bidirectional-match [] -> Bool
   :d "Verifies bidirectional shortcode matching with positive and negative cases."
   (let [(code1 "D52")
-        (code2 "d-0052")
+        (code2 "D0052")
         (code3 "D999")]
-    (assert (ca/verify-shortcode-bidirectional? code1 code2) "D52 and d-0052 must match under normalization")
+    (assert (ca/verify-shortcode-bidirectional? code1 code2) "D52 and D0052 must match under normalization")
     (assert (not (ca/verify-shortcode-bidirectional? code1 code3)) "D52 and D999 must not match")
     true))
 

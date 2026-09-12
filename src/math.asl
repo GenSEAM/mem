@@ -1,8 +1,9 @@
 (module asl-mem/math
   :d "High-Performance Pure AgentScript FastMath & Vector Primitives"
   :x [sqrt fast-inv-sqrt
-      vector-dot vector-norm vector-cosine-sim
-      vector-add vector-scale vector-relu vector-softmax])
+      vector-dot vector-norm vector-cosine-sim cosine-similarity
+      vector-add vector-scale vector-relu vector-softmax
+      fast-ln])
 
 (df sqrt [(x F64)] -> F64
   (:d "Newton-Raphson approximation for square root with fixed 10-step convergence")
@@ -51,6 +52,10 @@
         0.0
         (/ (vector-dot a b) (* norm-a norm-b)))))
 
+(df cosine-similarity [(a (List F64)) (b (List F64))] -> F64
+  (:d "Cosine similarity between two Float64 vectors in range [-1.0, 1.0]")
+  (vector-cosine-sim a b))
+
 (df vector-add-helper [(a (List F64)) (b (List F64)) (acc (List F64))] -> (List F64)
   (if (or (list-empty? a) (list-empty? b))
       acc
@@ -82,3 +87,15 @@
     (if (<= total 0.0)
         v
         (list-map (fn [(x F64)] (/ x total)) exps))))
+
+(df fast-ln [(x F64)] -> F64
+  (:d "Pure ASL natural logarithm approximation using hyperbolic series.")
+  (if (<= x 0.0)
+    -10.0
+    (let [(z (/ (- x 1.0) (+ x 1.0)))
+          (z2 (* z z))
+          (term1 z)
+          (term2 (* term1 z2))
+          (term3 (* term2 z2))
+          (term4 (* term3 z2))]
+      (* 2.0 (+ term1 (+ (/ term2 3.0) (+ (/ term3 5.0) (/ term4 7.0))))))))

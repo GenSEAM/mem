@@ -1,8 +1,6 @@
 (module asl-mem/hydration
   :d "Autonomous cascade compression lifecycle, managed amnesia context clearing, and operational buffer management in pure ASL."
-  :x [MemoryChunk
-      make-memory-chunk
-      ContextBuffer
+  :x [ContextBuffer
       make-context-buffer
       check-compression-threshold
       cascade-compress
@@ -11,36 +9,17 @@
       hydrate-intent-summary
       synthesize-intent-summary
       default-modern-decisions
-      hydrate-modern-intent]
-  :i [])
-
-(dfs MemoryChunk
-  (:f id Str "Canonical memory chunk record")
-  (:f ts I64 "Creation unix epoch timestamp in milliseconds")
-  (:f conf F64 "Chunk factual confidence score between 0.0 and 1.0")
-  (:f summary Str "Human and agent readable summary")
-  (:f facts (List Str) "Factual scalar assertion list")
-  (:f directives (List Str) "Operational constraints and behavioral directives")
-  (:f refs (List Str) "Causal parent chunk identifiers in DAG"))
-
-(df make-memory-chunk [(id Str) (ts I64) (conf F64) (summary Str) (facts (List Str)) (directives (List Str)) (refs (List Str))] -> MemoryChunk
-  :d "Constructs a MemoryChunk record with timestamp confidence and causal reference links."
-  (MemoryChunk
-    :id id
-    :ts ts
-    :conf conf
-    :summary summary
-    :facts facts
-    :directives directives
-    :refs refs))
+      hydrate-modern-intent
+      now-ms]
+  :i [(view_layer :a vl)])
 
 (dfs ContextBuffer
   (:f id Str "Buffer identifier")
   (:f active-tokens I64 "Current token count in active working memory")
   (:f messages (List Str) "Uncompressed operational message strings")
-  (:f chunks (List MemoryChunk) "Compressed memory chunk stubs"))
+  (:f chunks (List vl/MemoryChunk) "Compressed memory chunk stubs"))
 
-(df make-context-buffer [(id Str) (tokens I64) (messages (List Str)) (chunks (List MemoryChunk))] -> ContextBuffer
+(df make-context-buffer [(id Str) (tokens I64) (messages (List Str)) (chunks (List vl/MemoryChunk))] -> ContextBuffer
   :d "Constructs an operational working memory buffer record."
   (ContextBuffer
     :id id
@@ -99,7 +78,7 @@
         (facts (extract-facts msgs))
         (directives (extract-directives msgs))
         (summary (extract-summary msgs buf-id))
-        (chunk (make-memory-chunk c-id ts 0.95 summary facts directives parent-refs))
+        (chunk (vl/make-memory-chunk c-id ts 0.95 summary facts directives parent-refs))
         (new-chunks (list-append (.-chunks buffer) (list chunk)))
         (new-buf (ContextBuffer
                    :id buf-id
@@ -118,10 +97,10 @@
 
 (df default-core-axioms [] -> (List Str)
   :d "Returns canonical identifiers and descriptions of the four core engineering axioms."
-  (list "d-0015: Token Arbitrage (-70% tokens, pure ASN, zero JSON/YAML, zero emojis)"
-        "d-0016: Agent-Native Autonomy (machine-first, balanced delimiters, deterministic AST)"
-        "d-0017: Falsifiable Observability (7 verification gates, zero comments c-0001, physical receipts)"
-        "d-0018: In-Memory State Surgery (RAM VFS, batch RPC, speculative racing, clean supervisor)"))
+  (list "D0015: Token Arbitrage (-70% tokens, pure ASN, zero JSON/YAML, zero emojis)"
+        "D0016: Agent-Native Autonomy (machine-first, balanced delimiters, deterministic AST)"
+        "D0017: Falsifiable Observability (7 verification gates, zero comments C0001, physical receipts)"
+        "D0018: In-Memory State Surgery (RAM VFS, batch RPC, speculative racing, clean supervisor)"))
 
 (df hydrate-intent-summary [(axioms (List Str))] -> Str
   :d "Formats compact sub-100-token executive summary of core axioms and active architectural decisions."
@@ -131,38 +110,38 @@
 
 (df synthesize-intent-summary [(raw-ledger Str)] -> Str
   :d "Extracts verified core axioms from raw intent ledger text into sub-100-token executive summary."
-  (if (or (string-contains? raw-ledger "d-0015")
+  (if (or (string-contains? raw-ledger "D0015")
           (string-contains? raw-ledger "Token Arbitrage"))
       (hydrate-intent-summary (default-core-axioms))
       "Axioms: Ungrounded"))
 
 (df default-modern-decisions [] -> (List Str)
-  :d "Returns canonical identifiers and descriptions of modern architectural decisions d-0019 through d-0029."
-  (list "d-0019: Pure ASL Differential Test Runner & Falsifiable Gate Invariant"
-        "d-0020: Zero-Copy Token Regex Engine & CAS Mutators"
-        "d-0021: In-Memory AST Equivalence E-Graphs & Congruence Closure"
-        "d-0022: In-Memory Speculative VFS Branching & Pruning"
-        "d-0023: Grammar-Trie Constrained Decoding Engine"
-        "d-0024: Memory TaskStore State Machine & Priority Scheduler"
-        "d-0025: Multi-Agent Supervisor & Dual-Temperature Speculative Racing"
-        "d-0026: Pure ASL WASI Lowering & Node Annihilation"
-        "d-0027: Dense Tabular Pyramid & Sparkline Compaction"
-        "d-0028: Universal Cross-Reference URIs & AST Dependency Graph"
-        "d-0029: Decoupled Amnesia Runtime Context Eviction & Retention Audit"))
+  :d "Returns canonical identifiers and descriptions of modern architectural decisions D0019 through D0029."
+  (list "D0019: Pure ASL Differential Test Runner & Falsifiable Gate Invariant"
+        "D0020: Zero-Copy Token Regex Engine & CAS Mutators"
+        "D0021: In-Memory AST Equivalence E-Graphs & Congruence Closure"
+        "D0022: In-Memory Speculative VFS Branching & Pruning"
+        "D0023: Grammar-Trie Constrained Decoding Engine"
+        "D0024: Memory TaskStore State Machine & Priority Scheduler"
+        "D0025: Multi-Agent Supervisor & Dual-Temperature Speculative Racing"
+        "D0026: Pure ASL WASI Lowering & Node Annihilation"
+        "D0027: Dense Tabular Pyramid & Sparkline Compaction"
+        "D0028: Universal Cross-Reference URIs & AST Dependency Graph"
+        "D0029: Decoupled Amnesia Runtime Context Eviction & Retention Audit"))
 
 (df hydrate-modern-intent [(id Str)] -> Str
   :d "Retrieves hydrated summary of a modern architectural decision by ID or empty string if legacy or absent."
   (cond
-    ((= id "d-0019") "d-0019: Pure ASL Differential Test Runner & Falsifiable Gate Invariant")
-    ((= id "d-0020") "d-0020: Zero-Copy Token Regex Engine & CAS Mutators")
-    ((= id "d-0021") "d-0021: In-Memory AST Equivalence E-Graphs & Congruence Closure")
-    ((= id "d-0022") "d-0022: In-Memory Speculative VFS Branching & Pruning")
-    ((= id "d-0023") "d-0023: Grammar-Trie Constrained Decoding Engine")
-    ((= id "d-0024") "d-0024: Memory TaskStore State Machine & Priority Scheduler")
-    ((= id "d-0025") "d-0025: Multi-Agent Supervisor & Dual-Temperature Speculative Racing")
-    ((= id "d-0026") "d-0026: Pure ASL WASI Lowering & Node Annihilation")
-    ((= id "d-0027") "d-0027: Dense Tabular Pyramid & Sparkline Compaction")
-    ((= id "d-0028") "d-0028: Universal Cross-Reference URIs & AST Dependency Graph")
-    ((= id "d-0029") "d-0029: Decoupled Amnesia Runtime Context Eviction & Retention Audit")
+    ((= id "D0019") "D0019: Pure ASL Differential Test Runner & Falsifiable Gate Invariant")
+    ((= id "D0020") "D0020: Zero-Copy Token Regex Engine & CAS Mutators")
+    ((= id "D0021") "D0021: In-Memory AST Equivalence E-Graphs & Congruence Closure")
+    ((= id "D0022") "D0022: In-Memory Speculative VFS Branching & Pruning")
+    ((= id "D0023") "D0023: Grammar-Trie Constrained Decoding Engine")
+    ((= id "D0024") "D0024: Memory TaskStore State Machine & Priority Scheduler")
+    ((= id "D0025") "D0025: Multi-Agent Supervisor & Dual-Temperature Speculative Racing")
+    ((= id "D0026") "D0026: Pure ASL WASI Lowering & Node Annihilation")
+    ((= id "D0027") "D0027: Dense Tabular Pyramid & Sparkline Compaction")
+    ((= id "D0028") "D0028: Universal Cross-Reference URIs & AST Dependency Graph")
+    ((= id "D0029") "D0029: Decoupled Amnesia Runtime Context Eviction & Retention Audit")
     (:else "")))
 

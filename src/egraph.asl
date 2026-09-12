@@ -12,7 +12,7 @@
       egraph-rebuild
       egraph-extract
       egraph-saturate]
-  :i [])
+  :i [(token_regex :a tr)])
 
 (dfs ENode
   (:f op Str "Operator symbol or literal value")
@@ -316,25 +316,6 @@
   (let [(res (extract-class eg class-id (list)))]
     (.-second res)))
 
-(df tokenize-pattern [(s Str)] -> (List Str)
-  :d "Tokenizes an S-expression string into parentheses and symbol tokens."
-  (let [(res (fold (fn [(acc (Pair (List Str) Str)) (ch Str)] -> (Pair (List Str) Str)
-                     (let [(tokens (.-first acc))
-                           (curr (.-second acc))]
-                       (if (or (= ch " ") (or (= ch "\t") (= ch "\n")))
-                         (if (= curr "")
-                           (pair tokens "")
-                           (pair (list-append tokens (list curr)) ""))
-                         (if (or (= ch "(") (= ch ")"))
-                           (let [(t1 (if (= curr "") tokens (list-append tokens (list curr))))]
-                             (pair (list-append t1 (list ch)) ""))
-                           (pair tokens (str curr ch))))))
-                   (pair (list) "")
-                   (string-split s "")))]
-    (if (= (.-second res) "")
-      (.-first res)
-      (list-append (.-first res) (list (.-second res))))))
-
 (df parse-pattern-tokens [(tokens (List Str))] -> (Pair (Option Pattern) (List Str))
   :d "Parses tokens into a single Pattern AST node and remaining unparsed tokens."
   (if (list-empty? tokens)
@@ -367,7 +348,7 @@
 
 (df parse-pattern [(s Str)] -> (Option Pattern)
   :d "Parses an S-expression pattern string into a Pattern AST."
-  (let [(tokens (tokenize-pattern (string-trim s)))
+  (let [(tokens (tr/tokenize-pattern (string-trim s)))
         (res (parse-pattern-tokens tokens))]
     (.-first res)))
 

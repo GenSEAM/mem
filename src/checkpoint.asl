@@ -4,7 +4,8 @@
       format-checkpoint-asn
       parse-checkpoint-asn
       create-vfs-checkpoint
-      restore-vfs-checkpoint]
+      restore-vfs-checkpoint
+      extract-between]
   :i [(vfs :a v)
       (asl-text/escape :a esc)])
 

@@ -1,6 +1,6 @@
 (module asl-mem/stm
   :d "Software Transactional Memory coordinator for multi-file atomic in-memory transactions"
-  :exports [
+  :x [
     STMFileSnapshot
     STMTransaction
     STMCommitResult
@@ -12,7 +12,7 @@
     stm-get-snapshot
     stm-dirty-files
   ]
-  :i [(ast_merge :a am)])
+  :i [(ast_merge :a am) (vfs :a v)])
 
 (dfs ASTCollisionRecord
   (:f symbol-id Str "Conflicted symbol identifier")
@@ -81,7 +81,7 @@
                      :path path
                      :base-content current-trunk
                      :staged-content current-trunk
-                     :base-hash (str (string-length current-trunk))
+                     :base-hash (v/vfs-cas-hash current-trunk)
                      :dirty false))
              (next-snaps (list-append (.-snapshots tx) (list snap)))]
          (STMTransaction
@@ -168,7 +168,7 @@
                             ((some found) (some found))
                             ((none)
                              (if (string-starts-with? pair (str target ":"))
-                               (some (string-replace pair (str target ":") ""))
+                               (some (let [(pref (str target ":")) (plen (string-length pref))] (option-or (string-slice pair plen (string-length pair)) "")))
                                (none)))))
                         (none)
                         contents))]

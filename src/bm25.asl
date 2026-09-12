@@ -3,7 +3,6 @@
   :x [Bm25Doc
       Bm25Index
       Bm25Score
-      fast-ln
       tokenize-terms
       make-bm25-index
       compute-idf
@@ -11,7 +10,8 @@
       score-bm25
       sort-bm25-scores
       rank-bm25]
-  :i [])
+  :i [(math :a m)
+      (simhash :a sh)])
 
 (dfs Bm25Doc
   (:f id Str "Document or clause identifier")
@@ -28,44 +28,9 @@
   (:f doc-id Str "Document identifier")
   (:f score F64 "Computed BM25 score"))
 
-(df fast-ln [(x F64)] -> F64
-  :d "Pure ASL natural logarithm approximation using hyperbolic series."
-  (if (<= x 0.0)
-      -10.0
-      (let [(z (/ (- x 1.0) (+ x 1.0)))
-            (z2 (* z z))
-            (term1 z)
-            (term2 (* term1 z2))
-            (term3 (* term2 z2))
-            (term4 (* term3 z2))]
-        (* 2.0 (+ term1 (+ (/ term2 3.0) (+ (/ term3 5.0) (/ term4 7.0))))))))
-
-(df strip-punctuation [(text Str)] -> Str
-  :d "Replaces punctuation and whitespace delimiters with single spaces."
-  (let [(s1 (string-replace text "." " "))
-        (s2 (string-replace s1 "," " "))
-        (s3 (string-replace s2 ";" " "))
-        (s4 (string-replace s3 ":" " "))
-        (s5 (string-replace s4 "!" " "))
-        (s6 (string-replace s5 "?" " "))
-        (s7 (string-replace s6 "\"" " "))
-        (s8 (string-replace s7 "'" " "))
-        (s9 (string-replace s8 "(" " "))
-        (s10 (string-replace s9 ")" " "))
-        (s11 (string-replace s10 "[" " "))
-        (s12 (string-replace s11 "]" " "))
-        (s13 (string-replace s12 "{" " "))
-        (s14 (string-replace s13 "}" " "))
-        (s15 (string-replace s14 "-" " "))
-        (s16 (string-replace s15 "_" " "))
-        (s17 (string-replace s16 "/" " "))
-        (s18 (string-replace s17 "\\" " "))
-        (s19 (string-replace s18 "\n" " "))]
-    (string-replace s19 "\t" " ")))
-
 (df tokenize-terms [(text Str)] -> (List Str)
   :d "Lowercases and splits text into alphanumeric term tokens."
-  (let [(cleaned (strip-punctuation text))
+  (let [(cleaned (sh/strip-punct text))
         (lowered (string-lower cleaned))
         (raw-tokens (string-split lowered " "))
         (trimmed (map string-trim raw-tokens))]
@@ -140,7 +105,7 @@
         (numerator (+ (- n-f df-f) 0.5))
         (denominator (+ df-f 0.5))
         (arg (+ 1.0 (/ numerator denominator)))
-        (raw-idf (fast-ln arg))]
+        (raw-idf (m/fast-ln arg))]
     (if (< raw-idf 0.01)
         0.01
         raw-idf)))

@@ -1,5 +1,5 @@
 (module asl-mem/ast-merge
-  :exports [
+  :x [
     ASTCollisionRecord
     HomoiconicForm
     AstMergeOutcome

@@ -97,7 +97,7 @@
         (expired-pre (lease/expired? l1 22000))
         (expired-post (lease/expired? l1 26000))
         (l2 (lease/steal l1 "sess-stolen" "planner" 5000 26000))
-        (asn-str (lease/format l2))]
+        (asn-str (lease/format-lease l2))]
     (assert (not expired-pre) "Modular expired? must report false before deadline")
     (assert expired-post "Modular expired? must report true at deadline")
     (assert (= (.-session-id l2) "sess-stolen") "Modular steal must update session ID")

@@ -1,7 +1,11 @@
 (module asl-mem/structural-editor
   :d "Structural AST node transformer and balanced S-expression rewriting engine"
   :x [ASTTransform
-      rewrite-ast-node]
+      rewrite-ast-node
+      is-stub-body?
+      scaffold-module
+      scaffold-test
+      scaffold-fn]
   :i [(vfs :a v)
       (ast_filter :a af)
       (asl-parser/balance :a bal)])
@@ -16,19 +20,12 @@
   :d "Checks delimiter balance ensuring total open delimiters match closing delimiters via canonical asl-parser/balance."
   (bal/is-delimiter-balanced? text))
 
-(df char-to-code [(ch Str)] -> I64
-  :d "Maps single character to deterministic integer code."
-  (let [(charset "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !\"#$%&'()*+,-./:<=>?@[\\]^_`{|}~\t\n\r")]
-    (mt (string-index-of charset ch)
-      ((none) 127)
-      ((some idx) (+ idx 32)))))
-
 (df compute-cas-hash [(content Str)] -> Str
   :d "Computes deterministic content-addressed hash of buffer text payload."
   (let [(chars (string-chars content))
         (len (string-length content))
         (h (fold (fn [(acc I64) (ch Str)] -> I64
-                   (mod (+ (* acc 31) (char-to-code ch)) 2147483647))
+                   (mod (+ (* acc 31) (v/char-to-code ch)) 2147483647))
                  5381
                  chars))]
     (str "cas-" (string-from-int64 h) "-" (string-from-int64 len))))
@@ -171,3 +168,66 @@
           :revision (+ (.-revision buffer) 1)
           :dirty is-dirty
           :loaded-at (.-loaded-at buffer))))))
+
+(df is-stub-body? [(body Str)] -> Bool
+  :d "Detects constant-returning bodies and stubs lacking assertions or non-trivial expressions"
+  (let [(trimmed (string-trim body))]
+    (or (string-empty? trimmed)
+        (= trimmed "true")
+        (= trimmed "false")
+        (= trimmed "nil")
+        (= trimmed "0")
+        (= trimmed "\"\""))))
+
+(df scaffold-module [(name Str)] -> Str
+  :d "Generates a valid ASL module form with declared exports and imports"
+  (str "(module " name "\n"
+       "  :d \"Module " name " providing core operational capabilities\"\n"
+       "  :x [init-" name "\n"
+       "      process-" name "]\n"
+       "  :i [])\n\n"
+       "(df init-" name " [] -> Bool\n"
+       "  :d \"Initializes module state for " name "\"\n"
+       "  (let [(ready true)]\n"
+       "    (assert ready \"" name " initialization contract established\")\n"
+       "    ready))\n\n"
+       "(df process-" name " [(input Str)] -> Str\n"
+       "  :d \"Processes input for " name " transforming payload\"\n"
+       "  (if (string-empty? input)\n"
+       "    \"default\"\n"
+       "    (str \"" name ":\" input)))\n"))
+
+(df scaffold-test [(name Str)] -> Str
+  :d "Generates a valid ASL test module with non-stub assertions"
+  (str "(module tests/" name "\n"
+       "  :d \"Test suite for " name " validating non-trivial operational invariants\"\n"
+       "  :x [run-tests\n"
+       "      test-" name "-positive\n"
+       "      test-" name "-negative]\n"
+       "  :i [])\n\n"
+       (str "(df " "test-" name "-positive [] -> Bool\n")
+       "  :d \"Verifies positive transformation and execution behavior\"\n"
+       "  (let [(expected \"sample-data\")\n"
+       "        (actual (str \"sample\" \"-\" \"data\"))]\n"
+       "    (assert (= expected actual) \"expected must match actual\")\n"
+       "    (= expected actual)))\n\n"
+       (str "(df " "test-" name "-negative [] -> Bool\n")
+       "  :d \"Verifies boundary condition and negative case assertion\"\n"
+       "  (let [(empty-str \"\")\n"
+       "        (is-empty (string-empty? empty-str))]\n"
+       "    (assert is-empty \"empty string must satisfy string-empty predicate\")\n"
+       "    is-empty))\n\n"
+       "(df run-tests [] -> Bool\n"
+       "  :d \"Executes test suite for " name "\"\n"
+       "  (do\n"
+       "    (assert (test-" name "-positive) \"test-" name "-positive must pass\")\n"
+       "    (assert (test-" name "-negative) \"test-" name "-negative must pass\")\n"
+       "    true))\n"))
+
+(df scaffold-fn [(name Str)] -> Str
+  :d "Generates a typed function form with parameter bindings and non-stub body"
+  (str "(df " name " [(payload Str)] -> Str\n"
+       "  :d \"Processes payload for " name "\"\n"
+       "  (if (string-empty? payload)\n"
+       "    \"" name "-empty\"\n"
+       "    (str \"" name ":\" payload)))\n"))

@@ -47,13 +47,6 @@
   (:f wal-entries-committed I64 "Count of committed WAL log entries")
   (:f evicted-count I64 "Total items evicted from working ring"))
 
-(dfs EnginePair
-  (:f first Any "First component")
-  (:f second Any "Second component"))
-
-(df pair [(a Any) (b Any)] -> EnginePair
-  :d "Constructs a pair record with first and second accessors."
-  (EnginePair :first a :second b))
 
 (df make-engine [(mode StorageMode) (ring-cap I64) (wal-path Str) (snap-path Str)] -> MemoryEngine
   :d "Initializes a unified MemoryEngine with chosen storage tier configuration."

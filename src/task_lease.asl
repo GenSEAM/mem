@@ -10,7 +10,7 @@
       renew
       expired?
       steal
-      format]
+      format-lease]
   :i [(asl-text/escape :a esc)])
 
 (dfs SessionLease
@@ -94,6 +94,6 @@
   :d "1-to-2 token alias for steal-expired-lease."
   (steal-expired-lease lease new-session-id new-holder-role new-ttl-ms now-epoch))
 
-(df format [(lease SessionLease)] -> Str
+(df format-lease [(lease SessionLease)] -> Str
   :d "1-to-2 token alias for format-lease-asn."
   (format-lease-asn lease))

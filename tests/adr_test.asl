@@ -7,7 +7,7 @@
   (let [(pos (p/AdrConsequence :kind "pos" :text "Reduces tokens by 75%"))
         (neg (p/AdrConsequence :kind "neg" :text "Requires on-demand projection"))
         (adr (p/make-adr "ADR-0044"
-                         "d-0044"
+                         "D0044"
                          "Machine-Native ASN Decisions"
                          "active"
                          "2026-09-09"
@@ -16,10 +16,10 @@
                          "Markdown ADRs impose token tax"
                          (list "Context preservation" "AST queries")
                          "Store ADRs in ASN format"
-                         (list "c-0001" "c-0003")
+                         (list "C0001" "C0003")
                          (list pos neg)))]
     (assert (= (.-id adr) "ADR-0044") "ADR ID must match")
-    (assert (= (.-shortcode adr) "d-0044") "Shortcode must match")
+    (assert (= (.-shortcode adr) "D0044") "Shortcode must match")
     (assert (= (.-status adr) "active") "Status must be active")
     (assert (= (.-cluster adr) "architecture/governance") "Cluster must match")
     (assert (= (list-length (.-deciders adr)) 2) "Deciders count must be 2")
@@ -29,7 +29,7 @@
 (df test-adr-asn-serialization [] -> Bool
   (let [(pos (p/AdrConsequence :kind "pos" :text "High lexical density"))
         (adr (p/make-adr "ADR-0044"
-                         "d-0044"
+                         "D0044"
                          "Machine-Native Decisions"
                          "active"
                          "2026-09-09"
@@ -38,12 +38,12 @@
                          "Problem desc"
                          (list "Driver 1")
                          "Decision outcome"
-                         (list "c-0001")
+                         (list "C0001")
                          (list pos)))
         (asn-str (p/format-adr-asn adr))]
     (assert (string-contains? asn-str "(:adr") "Must contain :adr head")
     (assert (string-contains? asn-str ":id \"ADR-0044\"") "Must serialize ID")
-    (assert (string-contains? asn-str ":shortcode \"d-0044\"") "Must serialize shortcode")
+    (assert (string-contains? asn-str ":shortcode \"D0044\"") "Must serialize shortcode")
     (assert (string-contains? asn-str ":status :active") "Must serialize status keyword")
     (assert (string-contains? asn-str ":pos \"High lexical density\"") "Must serialize positive consequence")
     true))
@@ -52,7 +52,7 @@
   (let [(pos (p/AdrConsequence :kind "pos" :text "Deterministic AST queries"))
         (neg (p/AdrConsequence :kind "neg" :text "Transient human rendering step"))
         (adr (p/make-adr "ADR-0044"
-                         "d-0044"
+                         "D0044"
                          "Dual-Projection Governance"
                          "active"
                          "2026-09-09"
@@ -61,11 +61,11 @@
                          "Markdown wastes agent attention"
                          (list "Token economy" "Homoiconicity")
                          "Adopt canonical ASN storage"
-                         (list "c-0001" "c-0003")
+                         (list "C0001" "C0003")
                          (list pos neg)))
         (md-str (p/project-adr-md adr))]
     (assert (string-contains? md-str "# ADR-0044: Dual-Projection Governance") "Must contain H1 markdown title")
-    (assert (string-contains? md-str "- **Shortcode**: `d-0044`") "Must contain formatted shortcode")
+    (assert (string-contains? md-str "- **Shortcode**: `D0044`") "Must contain formatted shortcode")
     (assert (string-contains? md-str "## Problem Statement") "Must contain Problem Statement section")
     (assert (string-contains? md-str "## Decision Drivers") "Must contain Decision Drivers section")
     (assert (string-contains? md-str "## Decision") "Must contain Decision section")

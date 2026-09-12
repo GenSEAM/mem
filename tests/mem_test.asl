@@ -5,15 +5,16 @@
   :i [(store :a s)
       (graph :a g)
       (compact :a c)
-      (driver :a d)])
+      (driver :a d)
+      (math :a m)])
 
 (df test-vector-similarity [] -> Bool
   :d "Verifies cosine similarity calculation and vector normalization."
   (let [(v1 (list 1.0 0.0 0.0))
         (v2 (list 1.0 0.0 0.0))
         (v3 (list 0.0 1.0 0.0))
-        (sim1 (s/cosine-similarity v1 v2))
-        (sim2 (s/cosine-similarity v1 v3))]
+        (sim1 (m/cosine-similarity v1 v2))
+        (sim2 (m/cosine-similarity v1 v3))]
     (assert (> sim1 0.99) "Identical vectors similarity must be > 0.99")
     (assert (< sim2 0.01) "Orthogonal vectors similarity must be < 0.01")
     true))
@@ -23,9 +24,9 @@
   (let [(v1 (list 1.0 0.0))
         (v2 (list 0.0 1.0))
         (v3 (list -1.0 0.0))]
-    (assert (= (d/cosine-similarity v1 v2) 0.0) "Orthogonal vectors must have similarity 0.0")
-    (assert (= (d/cosine-similarity v1 v1) 1.0) "Identical vectors must have similarity 1.0")
-    (assert (= (d/cosine-similarity v1 v3) -1.0) "Opposite vectors must have similarity -1.0")
+    (assert (= (m/cosine-similarity v1 v2) 0.0) "Orthogonal vectors must have similarity 0.0")
+    (assert (= (m/cosine-similarity v1 v1) 1.0) "Identical vectors must have similarity 1.0")
+    (assert (= (m/cosine-similarity v1 v3) -1.0) "Opposite vectors must have similarity -1.0")
     true))
 
 (df test-knowledge-graph [] -> Bool

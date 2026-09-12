@@ -133,7 +133,7 @@
         (handoff (rec/extract t))
         (snap (rec/snapshot t "sess-rep" 40000))
         (rem (rec/resume (.-action-dag t) 1))
-        (asn-str (rec/format snap))]
+        (asn-str (rec/format-recovery snap))]
     (assert valid? "Modular verify must return true")
     (assert (= handoff "(:mod-state true)") "Modular extract must return handoff string")
     (assert (= (.-recovered-session-id snap) "sess-rep") "Modular snapshot must have recovered session")

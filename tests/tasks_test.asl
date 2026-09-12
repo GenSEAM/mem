@@ -156,9 +156,9 @@
               (list "task-owns-file?" "TaskStore")
               (list "task-381-05")
               "asl test --strict-falsify mem/tests/tasks_test.asl"
-              "Canonical holistic task representation enforcing c-0001, c-0002, d-0034"
+              "Canonical holistic task representation enforcing C0001, C0002, D0034"
               "Step 1: define struct; Step 2: author constructor; Step 3: verify with strict falsify"
-              (list "dual-case >= 2 asserts" "exit 0" "zero comments c-0001")
+              (list "dual-case >= 2 asserts" "exit 0" "zero comments C0001")
               (list "define struct" "author constructor" "verify with gate")))]
     (assert (= (.-id ht) "task-382-01") "Holistic task ID must match")
     (assert (= (.-parent-id ht) "task-382-root") "Parent ID must match")
@@ -171,7 +171,7 @@
     (assert (= (list-length (.-related-symbols ht)) 2) "Related symbols count must be 2")
     (assert (= (list-length (.-action-dag ht)) 3) "Action DAG length must be 3")
     (assert (= (list-length (.-acceptance-criteria ht)) 3) "Acceptance criteria count must be 3")
-    (assert (string-contains? (.-why ht) "c-0001") "Why must cite architectural invariant")
+    (assert (string-contains? (.-why ht) "C0001") "Why must cite architectural invariant")
     true))
 
 (df test-task-receipt-and-verification [] -> Bool
@@ -185,7 +185,7 @@
                    0
                    (list "mem/src/tasks.asl")
                    "hash-abc-123"
-                   (list "c-0001" "c-0002" "d-0034")
+                   (list "C0001" "C0002" "D0034")
                    "32 assertions evaluated cleanly"))
         (bad-rc-exit (t/make-task-receipt
                        1
@@ -196,7 +196,7 @@
                        1
                        (list "mem/src/tasks.asl")
                        "hash-abc-123"
-                       (list "c-0001")
+                       (list "C0001")
                        "Command failed with exit 1"))
         (bad-rc-zero-asserts (t/make-task-receipt
                               0
@@ -262,7 +262,7 @@
         (task-started (t/task-start task0 1500))
         (task-step1 (t/task-advance-step task-started 2000))
         (task-handoff (t/task-capture-handoff task-step1 "(:handoff :checkpoint \"cp-1\" :vars [\"k1\" \"v1\"])" 2500))
-        (receipt (t/make-task-receipt 0 35 16 28 8 0 (list "a.asl") "hash-1" (list "c-0001") "8 passed"))
+        (receipt (t/make-task-receipt 0 35 16 28 8 0 (list "a.asl") "hash-1" (list "C0001") "8 passed"))
         (task-completed (t/task-attach-receipt task-handoff receipt 3000))]
     (assert (= (.-state task-started) "in-progress") "Started task must be in-progress")
     (assert (= (.-started-at task-started) 1500) "Started-at timestamp must be 1500")
@@ -383,7 +383,7 @@
                1773285000
                (list "mem/src/tasks.asl")
                "asl test mem/tests/tasks_test.asl"
-               "c-0001"
+               "C0001"
                "m"
                "medium"
                "Single monolithic file causes multi-agent concurrent write collisions"
@@ -419,7 +419,7 @@
               (list "mem/src/tasks_store.asl")
               (list)
               "asl check"
-              "d-0054"
+              "D0054"
               "s"
               "critical"
               "Schema deficiency"

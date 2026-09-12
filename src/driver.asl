@@ -2,7 +2,6 @@
   :d "Pure AgentScript memory matrix driver, vector store adapter, and hybrid rank fusion."
   :x [VectorRecord
       create-record
-      cosine-similarity
       RrfScore
       sort-rrf-scores
       fuse-ranks-rrf
@@ -24,9 +23,6 @@
   :d "Constructs vector record instance."
   (VectorRecord :id id :content text :embedding emb))
 
-(df cosine-similarity [(v1 (List F64)) (v2 (List F64))] -> F64
-  :d "Computes cosine similarity between two vectors via Euclidean L2 normalization."
-  (m/vector-cosine-sim v1 v2))
 
 (df find-rank-loop [(id Str) (items (List Str)) (idx I64)] -> I64
   (if (list-empty? items)

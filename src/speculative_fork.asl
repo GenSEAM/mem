@@ -1,6 +1,6 @@
 (module asl-mem/speculative-fork
   :d "In-Memory Speculative Mutation Testing and Epistemic Fuzzing Harness"
-  :exports [
+  :x [
     SpeculativeMutant
     SpeculativeFuzzResult
     create-speculative-mutant
