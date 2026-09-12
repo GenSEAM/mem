@@ -3,6 +3,7 @@
   :x [CompensatingAction
       VFSBranch
       fork-vfs-branch
+      fork-vfs-branch-with-causal
       write-branch-buffer
       register-compensation
       commit-branch!
@@ -23,7 +24,8 @@
   (:f created-at-ms I64 "Epoch millisecond timestamp of branch creation")
   (:f buffers (List v/VFSBuffer) "List of isolated speculative VFS buffers")
   (:f compensations (List CompensatingAction) "List of registered reverse sagas")
-  (:f status Str "Lifecycle status of branch: active, committed, or aborted"))
+  (:f status Str "Lifecycle status of branch: active, committed, or aborted")
+  (:f causal-id Str "Associated causal message ID or intent linkage in swarm DAG"))
 
 (df find-branch-buffer [(buffers (List v/VFSBuffer)) (target-path Str)] -> (Option v/VFSBuffer)
   :d "Finds buffer in list matching canonical target path."
@@ -68,7 +70,27 @@
       :created-at-ms 1725793200000
       :buffers branch-buffers
       :compensations (list)
-      :status "active")))
+      :status "active"
+      :causal-id "")))
+
+(df fork-vfs-branch-with-causal [(registry v/VFSRegistry) (branch-id Str) (causal-id Str)] -> VFSBranch
+  :d "Forks an isolated speculative VFS branch linked to a causal intent message ID."
+  (let [(paths (.-active-paths registry))
+        (bufs-map (.-buffers registry))
+        (branch-buffers (fold (fn [(acc (List v/VFSBuffer)) (p Str)] -> (List v/VFSBuffer)
+                                (mt (map-get bufs-map p)
+                                  ((none) acc)
+                                  ((some b) (list-append acc (list b)))))
+                              (list)
+                              paths))]
+    (VFSBranch
+      :branch-id branch-id
+      :parent-id "root"
+      :created-at-ms 1725793200000
+      :buffers branch-buffers
+      :compensations (list)
+      :status "active"
+      :causal-id causal-id)))
 
 (df register-compensation [(branch VFSBranch) (action CompensatingAction)] -> VFSBranch
   :d "Registers a compensating reverse saga action to be triggered if the branch is aborted."
@@ -80,7 +102,8 @@
       :created-at-ms (.-created-at-ms branch)
       :buffers (.-buffers branch)
       :compensations (list-append (.-compensations branch) (list action))
-      :status (.-status branch))))
+      :status (.-status branch)
+      :causal-id (.-causal-id branch))))
 
 (df write-branch-buffer [(branch VFSBranch) (path Str) (content Str)] -> VFSBranch
   :d "Stages content mutations into a speculative branch buffer overlay without mutating root registry."
@@ -120,28 +143,46 @@
         :created-at-ms (.-created-at-ms branch)
         :buffers updated-buffers
         :compensations (.-compensations branch)
-        :status (.-status branch)))))
+        :status (.-status branch)
+        :causal-id (.-causal-id branch)))))
 
 (df commit-branch! [(branch VFSBranch) (registry v/VFSRegistry)] -> v/VFSRegistry
   :d "Merges modified and newly added branch buffers into root registry if branch is active."
   (if (!= (.-status branch) "active")
     registry
-    (fold (fn [(acc-reg v/VFSRegistry) (b v/VFSBuffer)] -> v/VFSRegistry
-            (if (or (.-dirty b) (is-none? (v/vfs-read acc-reg (.-path b))))
-              (v/vfs-write acc-reg (.-path b) (.-content b))
-              acc-reg))
-          registry
-          (.-buffers branch))))
+    (let [(collision (fold (fn [(acc Bool) (b v/VFSBuffer)] -> Bool
+                             (if acc true
+                               (let [(trunk-opt (v/vfs-read registry (.-path b)))]
+                                 (mt trunk-opt
+                                   ((none) false)
+                                   ((some tb)
+                                    (if (= (.-base-hash b) "") false
+                                        (!= (.-base-hash b) (.-cas-hash tb))))))))
+                           false
+                           (.-buffers branch)))]
+      (if collision
+        registry
+        (fold (fn [(acc-reg v/VFSRegistry) (b v/VFSBuffer)] -> v/VFSRegistry
+                (if (or (.-dirty b) (is-none? (v/vfs-read acc-reg (.-path b))))
+                  (v/vfs-write acc-reg (.-path b) (.-content b))
+                  acc-reg))
+              registry
+              (.-buffers branch))))))
 
 (df abort-branch [(branch VFSBranch)] -> VFSBranch
   :d "Aborts speculative branch by setting status to aborted and discarding pending buffers."
-  (VFSBranch
-    :branch-id (.-branch-id branch)
-    :parent-id (.-parent-id branch)
-    :created-at-ms (.-created-at-ms branch)
-    :buffers (list)
-    :compensations (list)
-    :status "aborted"))
+  (let [(executed (fold (fn [(acc I64) (action CompensatingAction)] -> I64
+                          (+ acc 1))
+                        0
+                        (.-compensations branch)))]
+    (VFSBranch
+      :branch-id (.-branch-id branch)
+      :parent-id (.-parent-id branch)
+      :created-at-ms (.-created-at-ms branch)
+      :buffers (list)
+      :compensations (list)
+      :status "aborted"
+      :causal-id (.-causal-id branch))))
 
 (df branch-diff [(branch VFSBranch) (path Str)] -> (Option Str)
   :d "Computes unified diff string for specified path in branch relative to base content."

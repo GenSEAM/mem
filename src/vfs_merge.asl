@@ -1,10 +1,12 @@
 (module asl-mem/vfs-merge
   :d "In-memory 3-way AST structural merge engine for conflict-free S-expression form integration"
   :x [AstMergeResult
+      CausalMergeResult
       ast-3way-merge
       merge-disjoint-forms
-      format-ast-conflict]
-  :i [])
+      format-ast-conflict
+      merge-causal-branch-intent]
+  :i [(ast_merge :a am)])
 
 (dfs AstMergeResult
   (:f merged-content Str "Merged S-expression content or conflict markers")
@@ -24,53 +26,46 @@
        disk-form "\n"
        ">>>>>>> DISK (" symbol-id ")"))
 
-(df clean-symbol-id [(raw-token Str)] -> Str
-  :d "Strips punctuation and delimiters from form symbol identifier."
-  (let [(t1 (string-replace raw-token "(" ""))
-        (t2 (string-replace t1 ")" ""))
-        (t3 (string-replace t2 "[" ""))
-        (t4 (string-replace t3 "]" ""))]
-    (string-trim t4)))
+(dfs ParseAccumulator
+  (:f chunks (List (List Str)) "Collected chunks")
+  (:f depth I64 "Paren depth"))
 
-(df extract-form-id [(first-line Str)] -> Str
-  :d "Extracts symbol identifier from header line of form."
-  (let [(trimmed (string-trim first-line))
-        (words (string-split trimmed " "))
-        (w-cnt (list-length words))]
-    (if (<= w-cnt 1)
-      (clean-symbol-id trimmed)
-      (let [(w1 (option-or (list-get words 1) ""))]
-        (if (or (string-empty? w1) (string-starts-with? w1 "["))
-          (clean-symbol-id (option-or (list-get words 0) "form"))
-          (clean-symbol-id w1))))))
+(df count-parens [(line Str)] -> I64
+  (let [(opens (- (list-length (string-split line "(")) 1))
+        (closes (- (list-length (string-split line ")")) 1))]
+    (- opens closes)))
 
 (df parse-lines-to-forms [(lines (List Str))] -> (List AstForm)
   :d "Groups text lines into top-level S-expression form records."
-  (let [(collected (fold (fn [(acc (List (List Str))) (line Str)] -> (List (List Str))
-                           (let [(is-new-form (string-starts-with? line "("))
-                                 (n (list-length acc))]
+  (let [(collected (fold (fn [(acc ParseAccumulator) (line Str)] -> ParseAccumulator
+                           (let [(is-new-form (and (string-starts-with? line "(") (<= (.-depth acc) 0)))
+                                 (delta (count-parens line))
+                                 (new-depth (if is-new-form delta (+ (.-depth acc) delta)))
+                                 (chunks (.-chunks acc))
+                                 (n (list-length chunks))]
                              (if is-new-form
-                               (list-append acc (list (list line)))
+                               (ParseAccumulator :chunks (list-append chunks (list (list line))) :depth new-depth)
                                (if (= n 0)
                                  (if (string-empty? (string-trim line))
                                    acc
-                                   (list-append acc (list (list line))))
+                                   (ParseAccumulator :chunks (list-append chunks (list (list line))) :depth new-depth))
                                  (let [(last-idx (- n 1))
-                                       (prev-chunk (option-or (list-get acc last-idx) (list)))
-                                       (init-acc (option-or (list-slice acc 0 last-idx) (list)))
+                                       (prev-chunk (option-or (list-get chunks last-idx) (list)))
+                                       (init-acc (option-or (list-slice chunks 0 last-idx) (list)))
                                        (updated-chunk (list-append prev-chunk (list line)))]
-                                   (list-append init-acc (list updated-chunk)))))))
-                         (list)
+                                   (ParseAccumulator :chunks (list-append init-acc (list updated-chunk)) :depth new-depth))))))
+                         (ParseAccumulator :chunks (list) :depth 0)
                          lines))]
     (fold (fn [(acc (List AstForm)) (form-lines (List Str))] -> (List AstForm)
-            (let [(raw (string-join form-lines "\n"))
+            (let [(raw (string-join form-lines "
+"))
                   (f-line (option-or (list-get form-lines 0) ""))
-                  (sym-id (extract-form-id f-line))]
+                  (sym-id (am/extract-form-id f-line))]
               (if (string-empty? (string-trim raw))
                 acc
                 (list-append acc (list (AstForm :symbol-id sym-id :raw-form raw))))))
           (list)
-          collected)))
+          (.-chunks collected))))
 
 (df parse-ast-forms [(content Str)] -> (List AstForm)
   :d "Parses buffer content into top-level AST form records."
@@ -182,3 +177,16 @@
 (df ast-3way-merge [(base-content Str) (staged-content Str) (disk-content Str)] -> AstMergeResult
   :d "Performs 3-way AST structural merge between base disk and staged buffers."
   (merge-disjoint-forms base-content staged-content disk-content))
+
+(dfs CausalMergeResult
+  (:f merged-result AstMergeResult "AST 3-way merge outcome")
+  (:f causal-id Str "Causal message ID associated with staged intent")
+  (:f intent-conflict? Bool "True if structural merge produced unresolved conflicts"))
+
+(df merge-causal-branch-intent [(base-content Str) (staged-content Str) (disk-content Str) (causal-id Str)] -> CausalMergeResult
+  :d "Resolves causal branch intent against base and disk using AST 3-way merge and tags conflicts."
+  (let [(m (ast-3way-merge base-content staged-content disk-content))]
+    (CausalMergeResult
+      :merged-result m
+      :causal-id causal-id
+      :intent-conflict? (not (.-clean m)))))
