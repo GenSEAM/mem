@@ -8,7 +8,7 @@
       test-amnesia-evict-below-threshold]
   :i [(asl-mem/notes :a n)
       (asl-mem/amnesia :a amn)
-      (asl-mem/view_layer :a vl)])
+      (asl-mem/view-layer :a vl)])
 
 (df test-scope-close-retires-step-notes [] -> Bool
   :d "Verifies that closing a step scope retires step notes while preserving task and epic notes."
