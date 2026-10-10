@@ -1,16 +1,5 @@
-# @genseam/mem (ASL Vector Semantic Memory)
+# mem
 
-Zero-server in-memory vector database and cosine similarity search engine running in 64KB WebAssembly.
+Archived. Moved into the AgentScript monorepo as the asl-mem package.
 
-## Installation
-```bash
-asl get github.com/GenSEAM/mem
-```
-
-## Performance
-- **Memory Footprint:** 64KB Wasm page
-- **Search Latency:** 0.038ms (5,000 vectors)
-- **Zero-Server:** Runs 100% in-browser, on edge devices, or inside iOS/Android Wasm3 runtimes.
-
-## License
-MIT
+This code now lives in the AgentScript monorepo at [`packages/asl-mem`](https://github.com/GenSEAM/asl/tree/main/packages/asl-mem). The history here stops at the last push to this repository; current history is in [GenSEAM/asl](https://github.com/GenSEAM/asl). The site is [aslang.dev](https://aslang.dev).
